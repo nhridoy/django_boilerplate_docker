@@ -1,0 +1,5 @@
+Dockerfile
+README.md
+.env.example
+db.sqlite3
+docker-compose.yml

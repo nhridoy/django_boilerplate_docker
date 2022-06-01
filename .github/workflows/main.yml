@@ -1,0 +1,26 @@
+# Github Action to copy the code to another repo
+name: CI
+on:
+  push:
+    branches: [main]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ssh-key: ${{ secrets.PAK }}
+          repository: "nhridoy/repo_name"
+      - name: Cleanup sub-repo
+        run: rm -rf app/backend
+      - uses: actions/checkout@v3
+        with:
+          path: "app/backend"
+      - name: remove git from sub-repo
+        run: rm -rf app/backend/.git && git add .
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: backend-${{ github.event.head_commit.message }}
+          commit_user_name: ${{ github.event.pusher.name }}
+          commit_user_email: ${{ github.event.pusher.email }}
+          commit_options: "--no-verify --signoff"
