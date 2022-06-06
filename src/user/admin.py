@@ -27,3 +27,4 @@ class AdminUser(UserAdmin):
 
 
 admin.site.register(models.User, AdminUser)
+admin.site.register(models.OTPModel)

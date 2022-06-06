@@ -1,6 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
 from django.core.validators import FileExtensionValidator
+import pyotp
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 
 # Create your models here.
@@ -89,5 +92,21 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.full_name
 
+class OTPModel(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_otp')
+    key = models.CharField(max_length=255, unique=True)
+    is_active = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f'OTP - {self.user.full_name} - {self.user.email}'
 
 
+@receiver(post_save, sender=User)
+def create_otp(sender, instance, created, **kwargs):
+    if created:
+        OTPModel.objects.create(user=instance, key=pyotp.random_base32())
+
+
+@receiver(post_save, sender=User)
+def save_otp(sender, instance, **kwargs):
+    instance.user_otp.save()

@@ -8,6 +8,7 @@ from user import views
 
 urlpatterns = [
     path('token/', views.MyTokenObtainPairView.as_view()),
+    path('otp/', views.OTPView.as_view()),
     path('token/refresh/', TokenRefreshView.as_view()),
     path('token/verify/', TokenVerifyView.as_view()),
     path('create_user/', views.NewUserView.as_view()),
