@@ -99,13 +99,11 @@ class QRCreateView(views.APIView):
         totp = pyotp.TOTP(generated_key)
         if totp.verify(otp):
             user_otp.key = generated_key
-            user_otp.otp_qr = qr_key
             user_otp.save()
             return response.Response({"message": 'Accepted'}, status=status.HTTP_200_OK)
         else:
             print(totp.now())
             user_otp.key = ''
-            user_otp.otp_qr = ''
             user_otp.save()
             return response.Response({'message': 'Not Accepted'}, status=status.HTTP_406_NOT_ACCEPTABLE)
 
