@@ -92,9 +92,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.full_name
 
+
 class OTPModel(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_otp')
-    key = models.CharField(max_length=255, unique=True)
+    key = models.CharField(max_length=255, unique=True, blank=True)
+    otp_qr = models.TextField(blank=True)
     is_active = models.BooleanField(default=False)
 
     def __str__(self):
@@ -104,7 +106,7 @@ class OTPModel(models.Model):
 @receiver(post_save, sender=User)
 def create_otp(sender, instance, created, **kwargs):
     if created:
-        OTPModel.objects.create(user=instance, key=pyotp.random_base32())
+        OTPModel.objects.create(user=instance)
 
 
 @receiver(post_save, sender=User)

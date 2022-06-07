@@ -117,6 +117,8 @@ src/.env
 # virtualenv
 venv/
 ENV/
+src/venv/
+src/env/
 
 # Spyder project settings
 .spyderproject

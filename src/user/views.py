@@ -34,6 +34,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
     JWT Custom Token Claims View
     """
     serializer_class = MyTokenObtainPairSerializer
+
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         user = models.User.objects.get(email=request.data['email'])
@@ -73,9 +74,39 @@ class OTPView(views.APIView):
         if totp.verify(otp):
             refresh = RefreshToken.for_user(current_user)
             refresh['email'] = current_user.email
-            return response.Response({'refresh': str(refresh), 'access': str(refresh.access_token)}, status=status.HTTP_200_OK)
+            return response.Response({'refresh': str(refresh), 'access': str(refresh.access_token)},
+                                     status=status.HTTP_200_OK)
         else:
             return response.Response({'message': 'Wrong Token'}, status=status.HTTP_406_NOT_ACCEPTABLE)
+
+
+class QRCreateView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        generated_key = pyotp.random_base32()
+        current_user = self.request.user
+        qr_key = pyotp.totp.TOTP(generated_key).provisioning_uri(name=current_user.email, issuer_name='Nexis Limited')
+        return response.Response({'qr_key': qr_key, 'generated_key': generated_key}, status=status.HTTP_200_OK)
+
+    def post(self, request, *args, **kwargs):
+        qr_key = self.request.data['qr_key']
+        generated_key = self.request.data['generated_key']
+        otp = self.request.data['otp']
+        current_user = self.request.user
+        user_otp = models.OTPModel.objects.get(user=current_user)
+
+        totp = pyotp.TOTP(generated_key)
+        if totp.verify(otp):
+            user_otp.key = generated_key
+            user_otp.otp_qr = qr_key
+            user_otp.save()
+            return response.Response({"message": 'Accepted'}, status=status.HTTP_200_OK)
+        else:
+            user_otp.key = ''
+            user_otp.otp_qr = ''
+            user_otp.save()
+            return response.Response({'message': totp.now()}, status=status.HTTP_406_NOT_ACCEPTABLE)
 
 
 class NewUserView(generics.ListCreateAPIView):
@@ -84,6 +115,7 @@ class NewUserView(generics.ListCreateAPIView):
     """
     serializer_class = serializers.NewUserSerializer
     queryset = models.User.objects.all()
+
     # permission_classes = [apipermissions.IsSuperUser]
 
     def create(self, request, *args, **kwargs):
@@ -98,4 +130,3 @@ class NewUserView(generics.ListCreateAPIView):
 
         return response.Response({'user_data': user_data, 'refresh_token': refresh, 'access_token': access},
                                  status=status.HTTP_201_CREATED)
-
