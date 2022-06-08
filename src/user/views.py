@@ -172,7 +172,14 @@ class QRCreateView(views.APIView):
             user_otp.is_active = False
             user_otp.save()
             return response.Response({'message': 'Not Accepted'}, status=status.HTTP_406_NOT_ACCEPTABLE)
-
+    
+    def delete(self, request, *args, **kwargs):
+        current_user = self.request.user
+        user_otp = models.OTPModel.objects.get(user=current_user)
+        user_otp.key = ''
+        user_otp.is_active = False
+        user_otp.save()
+        return Response({'message': 'OTP '})
 
 class NewUserView(generics.ListCreateAPIView):
     """
