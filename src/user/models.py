@@ -95,7 +95,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 class OTPModel(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_otp')
-    key = models.CharField(max_length=255, unique=True, blank=True)
+    key = models.TextField(unique=True, blank=True)
     is_active = models.BooleanField(default=False)
 
     def __str__(self):

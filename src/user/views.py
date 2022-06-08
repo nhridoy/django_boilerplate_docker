@@ -57,8 +57,9 @@ class MyTokenObtainPairView(TokenObtainPairView):
 
 
 class OTPView(views.APIView):
-    serializer_class = MyTokenObtainPairSerializer
-
+    """
+    View for Login with OTP
+    """
     def post(self, request, *args, **kwargs):
         key = bytes(settings.SECRET_KEY, 'utf-8')
         secret = bytes(self.request.data['secret'], 'utf-8')
@@ -68,7 +69,8 @@ class OTPView(views.APIView):
         data = jwt.decode(decrypted, settings.SECRET_KEY, settings.SIMPLE_JWT['ALGORITHM'])
 
         current_user = models.User.objects.get(id=data['user_id'])
-        totp = pyotp.TOTP(current_user.user_otp.key)
+        current_user_key = Fernet(key).decrypt(str(current_user.user_otp.key).encode()).decode()
+        totp = pyotp.TOTP(current_user_key)
 
         print(totp.now())
         if totp.verify(otp):
@@ -81,6 +83,10 @@ class OTPView(views.APIView):
 
 
 class QRCreateView(views.APIView):
+    """
+    Get method for QR Create
+    Post method for QR verify
+    """
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
@@ -98,7 +104,7 @@ class QRCreateView(views.APIView):
 
         totp = pyotp.TOTP(generated_key)
         if totp.verify(otp):
-            user_otp.key = generated_key
+            user_otp.key = Fernet(str(settings.SECRET_KEY).encode()).encrypt(str(generated_key).encode('utf-8')).decode()
             user_otp.save()
             return response.Response({"message": 'Accepted'}, status=status.HTTP_200_OK)
         else:
