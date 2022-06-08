@@ -1,5 +1,6 @@
 import pyotp
 from django.contrib.auth.hashers import make_password
+from django.contrib.auth import authenticate
 from django.conf import settings
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -54,6 +55,20 @@ class MyTokenObtainPairView(TokenObtainPairView):
             raise InvalidToken(e.args[0])
 
         # return response.Response(serializer.validated_data, status=status.HTTP_200_OK)
+
+class PasswordValidateView(views.APIView):
+    """
+    View for validating password
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        current_user = self.request.user
+        password = self.request.data['password']
+        user = authenticate(username=current_user.email, password=password)
+        if user:
+            return response.Response({'message': 'Password Accepted'}, status=status.HTTP_200_OK)
+        return response.Response({'message': 'Wrong Password'}, status=status.HTTP_406_NOT_ACCEPTABLE)
 
 
 class OTPView(views.APIView):
