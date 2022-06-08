@@ -1,6 +1,6 @@
 import pyotp
 from django.contrib.auth.hashers import make_password
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, password_validation
 from django.conf import settings
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -9,6 +9,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from user import models, serializers, apipermissions
 from rest_framework import generics, status, response, permissions, views
 import string, random, jwt
+from django.core.exceptions import ValidationError
 from cryptography.fernet import Fernet
 
 
@@ -89,7 +90,7 @@ class ChangePasswordView(generics.UpdateAPIView):
         if serializer.is_valid():
             # Check old password
             if not self.object.check_password(serializer.data.get("old_password")):
-                return Response({"old_password": ["Wrong password."]}, status=status.HTTP_400_BAD_REQUEST)
+                return response.Response({"old_password": ["Wrong password."]}, status=status.HTTP_400_BAD_REQUEST)
             # set_password also hashes the password that the user will get
             password = serializer.data.get("password")
             retype_password = serializer.data.get("retype_password")
@@ -106,12 +107,12 @@ class ChangePasswordView(generics.UpdateAPIView):
                         'data': []
                     }
 
-                    return Response(response)
+                    return response.Response(response)
                 except ValidationError as exc:
-                    return Response({'message': exc}, status=status.HTTP_400_BAD_REQUEST)
+                    return response.Response({'message': exc}, status=status.HTTP_400_BAD_REQUEST)
             else:
-                return Response({'message': 'Passwords do not match'}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                return response.Response({'message': 'Passwords do not match'}, status=status.HTTP_400_BAD_REQUEST)
+        return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class OTPView(views.APIView):
     """
