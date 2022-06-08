@@ -155,7 +155,6 @@ class QRCreateView(views.APIView):
         return response.Response({'qr_key': qr_key, 'generated_key': generated_key}, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
-        qr_key = self.request.data['qr_key']
         generated_key = self.request.data['generated_key']
         otp = self.request.data['otp']
         current_user = self.request.user
