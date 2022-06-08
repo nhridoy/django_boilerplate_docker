@@ -128,6 +128,7 @@ class OTPView(views.APIView):
 
         current_user = models.User.objects.get(id=data['user_id'])
         current_user_key = Fernet(key).decrypt(str(current_user.user_otp.key).encode()).decode()
+        print(current_user_key)
         totp = pyotp.TOTP(current_user_key)
 
         print(totp.now())
@@ -163,11 +164,13 @@ class QRCreateView(views.APIView):
         totp = pyotp.TOTP(generated_key)
         if totp.verify(otp):
             user_otp.key = Fernet(str(settings.SECRET_KEY).encode()).encrypt(str(generated_key).encode('utf-8')).decode()
+            user_otp.is_active = True
             user_otp.save()
             return response.Response({"message": 'Accepted'}, status=status.HTTP_200_OK)
         else:
             print(totp.now())
             user_otp.key = ''
+            user_otp.is_active = False
             user_otp.save()
             return response.Response({'message': 'Not Accepted'}, status=status.HTTP_406_NOT_ACCEPTABLE)
 
