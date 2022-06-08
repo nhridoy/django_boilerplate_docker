@@ -10,6 +10,7 @@ urlpatterns = [
     path('token/', views.MyTokenObtainPairView.as_view()),
     path('otp/', views.OTPView.as_view()),
     path('password-validate/', views.PasswordValidateView.as_view()),
+    path('change-password/', views.ChangePasswordView.as_view()),
     path('qr-create/', views.QRCreateView.as_view()),
     path('token/refresh/', TokenRefreshView.as_view()),
     path('token/verify/', TokenVerifyView.as_view()),

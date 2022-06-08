@@ -48,3 +48,13 @@ class NewUserSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
+class ChangePasswordSerializer(serializers.Serializer):
+    """
+    Serializer for password change endpoint.
+    """
+    model = models.User
+
+    old_password = serializers.CharField(required=True)
+    password = serializers.CharField(required=True)
+    retype_password = serializers.CharField(required=True)
+
