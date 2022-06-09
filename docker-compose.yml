@@ -43,6 +43,13 @@ services:
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_HOST=${DB_HOST}
+      - SECURE_SSL_REDIRECT=${SECURE_SSL_REDIRECT}
+      - EMAIL_HOST=${EMAIL_HOST}
+      - EMAIL_PORT=${EMAIL_PORT}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+      - EMAIL_USE_TLS=${EMAIL_USE_TLS}
+      - EMAIL_USE_SSL=${EMAIL_USE_SSL}
     build:
       context: .
       dockerfile: ./Dockerfile
