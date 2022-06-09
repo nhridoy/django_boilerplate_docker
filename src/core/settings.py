@@ -29,7 +29,7 @@ if os.environ.get('SECRET_KEY'):
     DJANGO_DB_USER = os.environ.get('DB_USER')
     DJANGO_DB_PASSWORD = os.environ.get('DB_PASSWORD')
     DJANGO_DB_HOST = os.environ.get('DB_HOST')
-    SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT')
+    SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT') == 'True'
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = os.environ.get('EMAIL_HOST')
     EMAIL_PORT = os.environ.get('EMAIL_PORT')
