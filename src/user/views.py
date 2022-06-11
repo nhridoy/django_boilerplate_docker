@@ -3,7 +3,6 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth import authenticate, password_validation
 from django.conf import settings
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from user import models, serializers, apipermissions
@@ -13,29 +12,11 @@ from django.core.exceptions import ValidationError
 from cryptography.fernet import Fernet
 
 
-class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
-    """
-    JWT Custom Token Claims Serializer
-    """
-
-    @classmethod
-    def get_token(cls, user):
-        token = super().get_token(user)
-
-        # Add custom claims
-        token['name'] = user.full_name
-        token['email'] = user.email
-        token['is_superuser'] = user.is_superuser
-        token['is_staff'] = user.is_staff
-
-        return token
-
-
 class MyTokenObtainPairView(TokenObtainPairView):
     """
     JWT Custom Token Claims View
     """
-    serializer_class = MyTokenObtainPairSerializer
+    serializer_class = serializers.MyTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
