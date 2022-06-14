@@ -20,7 +20,7 @@ STATIC_DIR = BASE_DIR.joinpath('static')
 MEDIA_DIR = BASE_DIR.joinpath('media')
 
 
-if os.environ.get('SECRET_KEY'):
+if os.getenv('SECRET_KEY'):
     ON_PRODUCTION = os.environ.get('ON_PRODUCTION') == "True"
     DJANGO_SECRET_KEY = os.environ.get('SECRET_KEY')
     DJANGO_DEBUG = os.environ.get('DEBUG') == "True"
@@ -30,14 +30,16 @@ if os.environ.get('SECRET_KEY'):
     DJANGO_DB_PASSWORD = os.environ.get('DB_PASSWORD')
     DJANGO_DB_HOST = os.environ.get('DB_HOST')
     SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT') == 'True'
+    HOSTS = os.environ.get('ALLOWED_HOSTS').split(',')
+    CORS_HOSTS = os.environ.get('CORS_HOSTS').split(',')
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = os.environ.get('EMAIL_HOST')
     EMAIL_PORT = os.environ.get('EMAIL_PORT')
     EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
     EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
-    # EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS') == 'True'
-    EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL') == 'True'
-    DEFAULT_FROM_EMAIL = 'Nexis <info@nexisltd.com>'
+    EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS') == 'True'
+    # EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL') == 'True'
+    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL')
 else:
     env = environ.Env(
         DEBUG=(bool, False)
@@ -55,15 +57,16 @@ else:
     DJANGO_DB_PASSWORD = env('DB_PASSWORD')
     DJANGO_DB_HOST = env('DB_HOST')
     SECURE_SSL_REDIRECT = env('SECURE_SSL_REDIRECT')
+    HOSTS = env('ALLOWED_HOSTS').split(',')
+    CORS_HOSTS = env('CORS_HOSTS').split(',')
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = env('EMAIL_HOST')
     EMAIL_PORT = env('EMAIL_PORT')
     EMAIL_HOST_USER = env('EMAIL_HOST_USER')
     EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
-    # EMAIL_USE_TLS = env('EMAIL_USE_TLS') == 'True'
-    EMAIL_USE_SSL = env('EMAIL_USE_SSL') == 'True'
-    DEFAULT_FROM_EMAIL = 'Nexis <info@nexisltd.com>'
-
+    EMAIL_USE_TLS = env('EMAIL_USE_TLS') == 'True'
+    # EMAIL_USE_SSL = env('EMAIL_USE_SSL') == 'True'
+    DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
@@ -74,7 +77,7 @@ SECRET_KEY = DJANGO_SECRET_KEY
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = DJANGO_DEBUG
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = HOSTS
 
 # Application definition
 
@@ -246,5 +249,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'user.User'
 CORS_ALLOW_ALL_ORIGINS = True
+# Turn this on if want to specify hosts
+# CORS_ALLOWED_ORIGINS = CORS_HOSTS
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:8000']
