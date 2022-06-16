@@ -20,23 +20,26 @@ class MyTokenObtainPairView(TokenObtainPairView):
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        user = models.User.objects.get(email=request.data['email'])
         try:
+            user = models.User.objects.get(email=request.data['email'])
+            try:
+                serializer.is_valid(raise_exception=True)
+                otp = models.OTPModel.objects.get(user=user)
+                if not otp.is_active:
+                    return response.Response(serializer.validated_data, status=status.HTTP_200_OK)
+                else:
+                    key = bytes(settings.SECRET_KEY, 'utf-8')
+                    refresh_token = RefreshToken.for_user(user)
+
+                    fer_key = Fernet(key).encrypt(bytes(str(refresh_token), 'utf-8'))
+
+                    return response.Response({'secret': fer_key}, status=status.HTTP_202_ACCEPTED)
+            except TokenError as e:
+                raise InvalidToken(e.args[0])
+        except Exception as e:
             serializer.is_valid(raise_exception=True)
-            otp = models.OTPModel.objects.get(user=user)
-            if not otp.is_active:
-                return response.Response(serializer.validated_data, status=status.HTTP_200_OK)
-            else:
-                key = bytes(settings.SECRET_KEY, 'utf-8')
-                refresh_token = RefreshToken.for_user(user)
+            return response.Response(serializer.validated_data, status=status.HTTP_200_OK)
 
-                fer_key = Fernet(key).encrypt(bytes(str(refresh_token), 'utf-8'))
-
-                return response.Response({'secret': fer_key}, status=status.HTTP_202_ACCEPTED)
-        except TokenError as e:
-            raise InvalidToken(e.args[0])
-
-        # return response.Response(serializer.validated_data, status=status.HTTP_200_OK)
 
 class PasswordValidateView(views.APIView):
     """
@@ -51,6 +54,7 @@ class PasswordValidateView(views.APIView):
         if user:
             return response.Response({'message': 'Password Accepted'}, status=status.HTTP_200_OK)
         return response.Response({'message': 'Wrong Password'}, status=status.HTTP_406_NOT_ACCEPTABLE)
+
 
 class ChangePasswordView(generics.UpdateAPIView):
     """
@@ -95,10 +99,12 @@ class ChangePasswordView(generics.UpdateAPIView):
                 return response.Response({'message': 'Passwords do not match'}, status=status.HTTP_400_BAD_REQUEST)
         return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 class OTPView(views.APIView):
     """
     View for Login with OTP
     """
+
     def post(self, request, *args, **kwargs):
         key = bytes(settings.SECRET_KEY, 'utf-8')
         secret = bytes(self.request.data['secret'], 'utf-8')
@@ -143,7 +149,8 @@ class QRCreateView(views.APIView):
 
         totp = pyotp.TOTP(generated_key)
         if totp.verify(otp):
-            user_otp.key = Fernet(str(settings.SECRET_KEY).encode()).encrypt(str(generated_key).encode('utf-8')).decode()
+            user_otp.key = Fernet(str(settings.SECRET_KEY).encode()).encrypt(
+                str(generated_key).encode('utf-8')).decode()
             user_otp.is_active = True
             user_otp.save()
             return response.Response({"message": 'Accepted'}, status=status.HTTP_200_OK)
@@ -153,7 +160,7 @@ class QRCreateView(views.APIView):
             user_otp.is_active = False
             user_otp.save()
             return response.Response({'message': 'Not Accepted'}, status=status.HTTP_406_NOT_ACCEPTABLE)
-    
+
     def delete(self, request, *args, **kwargs):
         current_user = self.request.user
         user_otp = models.OTPModel.objects.get(user=current_user)
@@ -161,6 +168,7 @@ class QRCreateView(views.APIView):
         user_otp.is_active = False
         user_otp.save()
         return Response({'message': 'OTP '})
+
 
 class NewUserView(generics.ListCreateAPIView):
     """
