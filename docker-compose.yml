@@ -1,4 +1,4 @@
-version: '3.4'
+version: "3.4"
 
 services:
   # postgres:
@@ -10,7 +10,7 @@ services:
   #   volumes:
   #     - postgres:/var/lib/postgresql/data/pgdata
   #   networks:
-  #     - django_boilerplate
+  #     - oxygen_django
   #   environment:
   #     - POSTGRES_PASSWORD=${DB_PASSWORD}
   #     - POSTGRES_DB=${DB_NAME}
@@ -21,40 +21,25 @@ services:
   #           test: ["CMD-SHELL", "pg_isready"]
   #           timeout: 20s
   #           retries: 10
-  django_boilerplate:
-    container_name: django_boilerplate
-    image: django_boilerplate
+  oxygen_django:
+    container_name: oxygen_django
+    image: oxygen_django
     restart: unless-stopped
     # depends_on:
     #   postgres:
     #       condition: service_healthy
     ports:
-      - '8000:8000'
+      - "8000:8000"
     volumes:
-      - django_boilerplate:/app
+      - oxygen_django:/app
     networks:
-      - django_boilerplate
-    environment:
-      - DEBUG=${DEBUG}
-      - SECRET_KEY=${SECRET_KEY}
-      - ON_PRODUCTION=${ON_PRODUCTION}
-      - DB_ENGINE=${DB_ENGINE}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_HOST=${DB_HOST}
-      - SECURE_SSL_REDIRECT=${SECURE_SSL_REDIRECT}
-      - EMAIL_HOST=${EMAIL_HOST}
-      - EMAIL_PORT=${EMAIL_PORT}
-      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
-      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
-      - EMAIL_USE_TLS=${EMAIL_USE_TLS}
-      - EMAIL_USE_SSL=${EMAIL_USE_SSL}
+      - oxygen_django
+    env_file: .env
     build:
       context: .
       dockerfile: ./Dockerfile
 volumes:
-  django_boilerplate:
+  oxygen_django:
   postgres:
 networks:
-  django_boilerplate:
+  oxygen_django:
