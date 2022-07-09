@@ -85,14 +85,14 @@ class ChangePasswordView(generics.UpdateAPIView):
                     password_validation.validate_password(password=password, user=self.request.user)
                     self.object.set_password(password)
                     self.object.save()
-                    response = {
+                    responses = {
                         'status': 'success',
                         'code': status.HTTP_200_OK,
                         'message': 'Password updated successfully',
                         'data': []
                     }
 
-                    return response.Response(response)
+                    return response.Response(responses)
                 except ValidationError as exc:
                     return response.Response({'message': exc}, status=status.HTTP_400_BAD_REQUEST)
             else:
@@ -167,7 +167,7 @@ class QRCreateView(views.APIView):
         user_otp.key = ''
         user_otp.is_active = False
         user_otp.save()
-        return Response({'message': 'OTP '})
+        return response.Response({'message': 'OTP '})
 
 
 class NewUserView(generics.ListCreateAPIView):
