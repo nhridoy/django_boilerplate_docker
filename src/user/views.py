@@ -6,7 +6,7 @@ from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from user import models, serializers, apipermissions
-from rest_framework import generics, status, response, permissions, views
+from rest_framework import generics, status, response, permissions, views, exceptions
 import string, random, jwt
 from django.core.exceptions import ValidationError
 from cryptography.fernet import Fernet
@@ -26,7 +26,19 @@ class MyTokenObtainPairView(TokenObtainPairView):
                 serializer.is_valid(raise_exception=True)
                 otp = models.OTPModel.objects.get(user=user)
                 if not otp.is_active:
-                    return response.Response(serializer.validated_data, status=status.HTTP_200_OK)
+                    resp = response.Response()
+                    resp.set_cookie(
+                        key='refresh', value=serializer.validated_data["refresh"], httponly=True, samesite='None',
+                        secure=True,
+                        expires=settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'])
+                    resp.set_cookie(
+                        key='access', value=serializer.validated_data["access"], httponly=True, samesite='None',
+                        secure=True,
+                        expires=settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'])
+                    resp.data = serializer.validated_data
+                    resp.status_code = status.HTTP_200_OK
+                    return resp
+                    # return response.Response(serializer.validated_data, status=status.HTTP_200_OK)
                 else:
                     key = bytes(settings.SECRET_KEY, 'utf-8')
                     refresh_token = RefreshToken.for_user(user)
@@ -122,8 +134,20 @@ class OTPView(views.APIView):
         if totp.verify(otp):
             refresh = RefreshToken.for_user(current_user)
             refresh['email'] = current_user.email
-            return response.Response({'refresh': str(refresh), 'access': str(refresh.access_token)},
-                                     status=status.HTTP_200_OK)
+            resp = response.Response()
+            resp.set_cookie(
+                key='refresh', value=refresh, httponly=True, samesite='None',
+                secure=True,
+                expires=settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'])
+            resp.set_cookie(
+                key='access', value=refresh.access_token, httponly=True, samesite='None',
+                secure=True,
+                expires=settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'])
+            resp.data = {'refresh': str(refresh), 'access': str(refresh.access_token)}
+            resp.status_code = status.HTTP_200_OK
+            return resp
+            # return response.Response({'refresh': str(refresh), 'access': str(refresh.access_token)},
+            #                          status=status.HTTP_200_OK)
         else:
             return response.Response({'message': 'Wrong Token'}, status=status.HTTP_406_NOT_ACCEPTABLE)
 
@@ -138,7 +162,7 @@ class QRCreateView(views.APIView):
     def get(self, request, *args, **kwargs):
         generated_key = pyotp.random_base32()
         current_user = self.request.user
-        qr_key = pyotp.totp.TOTP(generated_key).provisioning_uri(name=current_user.email, issuer_name='Nexis Limited')
+        qr_key = pyotp.totp.TOTP(generated_key).provisioning_uri(name=current_user.email, issuer_name='Oxygen Django')
         return response.Response({'qr_key': qr_key, 'generated_key': generated_key}, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
@@ -153,13 +177,14 @@ class QRCreateView(views.APIView):
                 str(generated_key).encode('utf-8')).decode()
             user_otp.is_active = True
             user_otp.save()
-            return response.Response({"message": 'Accepted'}, status=status.HTTP_200_OK)
+            return response.Response({"detail": 'Accepted'}, status=status.HTTP_200_OK)
         else:
             print(totp.now())
             user_otp.key = ''
             user_otp.is_active = False
             user_otp.save()
-            return response.Response({'message': 'Not Accepted'}, status=status.HTTP_406_NOT_ACCEPTABLE)
+            raise exceptions.NotAcceptable()
+            # return response.Response({'detail': 'Not Accepted'}, status=status.HTTP_406_NOT_ACCEPTABLE)
 
     def delete(self, request, *args, **kwargs):
         current_user = self.request.user
