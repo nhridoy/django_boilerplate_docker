@@ -4,6 +4,7 @@ from django.core.validators import FileExtensionValidator
 import pyotp
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from core.models import BaseModel
 
 
 # Create your models here.
@@ -53,28 +54,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(
         max_length=100, verbose_name='Email', unique=True, blank=True)
     full_name = models.CharField(verbose_name='Full Name', max_length=100)
-    phone_number = models.CharField(max_length=255, verbose_name="Phone Number")
-    address_one = models.CharField(max_length=255, blank=True)
-    address_two = models.CharField(max_length=255, blank=True)
-    city = models.CharField(max_length=255, blank=True)
-    zipcode = models.CharField(max_length=255, null=True, blank=True)
-    country = models.CharField(
-        verbose_name="Country", max_length=50, blank=True)
-    profile_pic = models.ImageField(
-        upload_to='users/', default='users/default.png')
-    birth_date = models.DateField(
-        verbose_name='Birth Date', blank=True, null=True)
     date_joined = models.DateTimeField(
         verbose_name='Date Joined', auto_now_add=True)
     last_login = models.DateTimeField(auto_now=True)
-    gender_options = (
-        ('Male', 'Male'),
-        ('Female', 'Female'),
-        ('Other', 'Other'),
-    )
-
-    gender = models.CharField(
-        verbose_name='Choose Gender', choices=gender_options, max_length=20)
 
     is_staff = models.BooleanField(verbose_name='Staff Status', default=False, help_text='Designate if the user has '
                                                                                          'staff status')
@@ -93,7 +75,38 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.full_name
 
 
-class OTPModel(models.Model):
+class UserInformationModel(BaseModel):
+    """
+    Model to store user basic information
+    """
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_information')
+    phone_number = models.CharField(max_length=50, verbose_name="Phone Number")
+    address_one = models.CharField(max_length=255)
+    address_two = models.CharField(max_length=255, blank=True)
+    city = models.CharField(max_length=100)
+    zipcode = models.CharField(max_length=50)
+    country = models.CharField(
+        verbose_name="Country", max_length=100)
+    profile_pic = models.ImageField(
+        upload_to='users/', default='users/default.png')
+    birth_date = models.DateField(verbose_name='Birth Date', null=True)
+    gender_options = (
+        ('Male', 'Male'),
+        ('Female', 'Female'),
+        ('Other', 'Other'),
+    )
+
+    gender = models.CharField(
+        verbose_name='Choose Gender', choices=gender_options, max_length=20)
+
+    def __str__(self):
+        return f"{self.user}'s information"
+
+
+class OTPModel(BaseModel):
+    """
+    Model to handle user OTP
+    """
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_otp')
     key = models.TextField(unique=True, blank=True)
     is_active = models.BooleanField(default=False)
@@ -103,11 +116,13 @@ class OTPModel(models.Model):
 
 
 @receiver(post_save, sender=User)
-def create_otp(sender, instance, created, **kwargs):
+def create_instance(sender, instance, created, **kwargs):
     if created:
         OTPModel.objects.create(user=instance)
+        UserInformationModel.objects.create(user=instance)
 
 
 @receiver(post_save, sender=User)
-def save_otp(sender, instance, **kwargs):
+def save_instance(sender, instance, **kwargs):
     instance.user_otp.save()
+    instance.user_information.save()
