@@ -1,9 +1,11 @@
 from rest_framework import serializers, validators
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt import tokens, settings as jwt_settings
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.validators import UnicodeUsernameValidator
 
 from user import models
+
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
@@ -22,6 +24,34 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         return token
 
+
+class TokenRefreshSerializer(serializers.Serializer):
+    refresh = serializers.CharField()
+
+    token_class = tokens.RefreshToken
+
+    def validate(self, attrs):
+        refresh = self.token_class(attrs["refresh"])
+
+        data = {"access": str(refresh.access_token)}
+
+        if jwt_settings.api_settings.ROTATE_REFRESH_TOKENS:
+            if jwt_settings.api_settings.BLACKLIST_AFTER_ROTATION:
+                try:
+                    # Attempt to blacklist the given refresh token
+                    refresh.blacklist()
+                except AttributeError:
+                    # If blacklist app not installed, `blacklist` method will
+                    # not be present
+                    pass
+
+            refresh.set_jti()
+            refresh.set_exp()
+            refresh.set_iat()
+
+            data["refresh"] = str(refresh)
+
+        return data
 
 
 class NewUserSerializer(serializers.ModelSerializer):
@@ -67,6 +97,7 @@ class NewUserSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
+
 class ChangePasswordSerializer(serializers.Serializer):
     """
     Serializer for password change endpoint.
@@ -76,4 +107,3 @@ class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(required=True)
     password = serializers.CharField(required=True)
     retype_password = serializers.CharField(required=True)
-

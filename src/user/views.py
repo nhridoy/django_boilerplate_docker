@@ -5,6 +5,7 @@ from django.conf import settings
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt import serializers as drf_serializers
 from user import models, serializers, apipermissions
 from rest_framework import generics, status, response, permissions, views, exceptions
 import string, random, jwt
@@ -150,6 +151,36 @@ class OTPView(views.APIView):
             #                          status=status.HTTP_200_OK)
         else:
             return response.Response({'message': 'Wrong Token'}, status=status.HTTP_406_NOT_ACCEPTABLE)
+
+
+class MyTokenRefreshView(generics.GenericAPIView):
+    """
+    View for get new access token for a valid refresh token
+    """
+    serializer_class = serializers.TokenRefreshSerializer
+
+    def post(self, request, *args, **kwargs):
+        ser = self.serializer_class(data=request.data)
+        try:
+            ser.is_valid(raise_exception=True)
+            resp = response.Response()
+            try:
+                resp.set_cookie(
+                    key='refresh', value=ser.validated_data["refresh"], httponly=True, samesite='None',
+                    secure=True,
+                    expires=settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'])
+            except Exception as e:
+                pass
+            resp.set_cookie(
+                key='access', value=ser.validated_data["access"], httponly=True, samesite='None',
+                secure=True,
+                expires=settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'])
+            resp.data = ser.validated_data
+            resp.status_code = status.HTTP_200_OK
+            return resp
+            # return response.Response(ser.validated_data)
+        except Exception as e:
+            raise exceptions.AuthenticationFailed(detail=e)
 
 
 class QRCreateView(views.APIView):
