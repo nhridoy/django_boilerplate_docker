@@ -14,5 +14,5 @@ urlpatterns = [
     path('qr-create/', views.QRCreateView.as_view()),
     path('token/refresh/', views.MyTokenRefreshView.as_view()),
     path('token/verify/', TokenVerifyView.as_view()),
-    path('create_user/', views.NewUserView.as_view()),
+    # path('registration/', views.NewUserView.as_view()),
 ]

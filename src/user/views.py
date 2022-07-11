@@ -2,6 +2,7 @@ import pyotp
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth import authenticate, password_validation
 from django.conf import settings
+from django.utils import timezone
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -30,12 +31,12 @@ class MyTokenObtainPairView(TokenObtainPairView):
                     resp = response.Response()
                     resp.set_cookie(
                         key='refresh', value=serializer.validated_data["refresh"], httponly=True, samesite='None',
-                        secure=True,
-                        expires=settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'])
+
+                        expires=(timezone.now() + settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME']))
                     resp.set_cookie(
                         key='access', value=serializer.validated_data["access"], httponly=True, samesite='None',
-                        secure=True,
-                        expires=settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'])
+
+                        expires=(timezone.now() + settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME']))
                     resp.data = serializer.validated_data
                     resp.status_code = status.HTTP_200_OK
                     return resp
@@ -138,12 +139,12 @@ class OTPView(views.APIView):
             resp = response.Response()
             resp.set_cookie(
                 key='refresh', value=refresh, httponly=True, samesite='None',
-                secure=True,
-                expires=settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'])
+
+                expires=(timezone.now() + settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME']))
             resp.set_cookie(
                 key='access', value=refresh.access_token, httponly=True, samesite='None',
-                secure=True,
-                expires=settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'])
+
+                expires=(timezone.now() + settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME']))
             resp.data = {'refresh': str(refresh), 'access': str(refresh.access_token)}
             resp.status_code = status.HTTP_200_OK
             return resp
@@ -167,14 +168,14 @@ class MyTokenRefreshView(generics.GenericAPIView):
             try:
                 resp.set_cookie(
                     key='refresh', value=ser.validated_data["refresh"], httponly=True, samesite='None',
-                    secure=True,
-                    expires=settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'])
+
+                    expires=(timezone.now() + settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME']))
             except Exception as e:
                 pass
             resp.set_cookie(
                 key='access', value=ser.validated_data["access"], httponly=True, samesite='None',
-                secure=True,
-                expires=settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'])
+
+                expires=(timezone.now() + settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME']))
             resp.data = ser.validated_data
             resp.status_code = status.HTTP_200_OK
             return resp

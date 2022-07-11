@@ -50,9 +50,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     Custom User Model Class
     """
     username = models.CharField(
-        max_length=100, verbose_name='Username', unique=True, blank=False)
+        max_length=100, verbose_name='Username', unique=True)
     email = models.EmailField(
-        max_length=100, verbose_name='Email', unique=True, blank=True)
+        max_length=100, verbose_name='Email', unique=True)
     full_name = models.CharField(verbose_name='Full Name', max_length=100)
     date_joined = models.DateTimeField(
         verbose_name='Date Joined', auto_now_add=True)
@@ -108,7 +108,7 @@ class OTPModel(BaseModel):
     Model to handle user OTP
     """
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_otp')
-    key = models.TextField(unique=True, blank=True)
+    key = models.TextField(unique=True, blank=True, null=True)
     is_active = models.BooleanField(default=False)
 
     def __str__(self):
