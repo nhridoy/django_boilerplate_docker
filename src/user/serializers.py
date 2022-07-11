@@ -121,8 +121,8 @@ class LoginSerializer(serializers.Serializer):
     def validate_email_verification_status(user):
         from allauth.account import app_settings
         if (
-            app_settings.EMAIL_VERIFICATION == app_settings.EmailVerificationMethod.MANDATORY
-            and not user.emailaddress_set.filter(email=user.email, verified=True).exists()
+                app_settings.EMAIL_VERIFICATION == app_settings.EmailVerificationMethod.MANDATORY
+                and not user.emailaddress_set.filter(email=user.email, verified=True).exists()
         ):
             raise serializers.ValidationError(_('E-mail is not verified.'))
 

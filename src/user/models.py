@@ -14,30 +14,27 @@ class UserManager(BaseUserManager):
     This is the manager for custom user model
     """
 
-    def create_user(self, username, email, full_name, password=None):
+    def create_user(self, username, email, password=None):
 
         if not username:
             raise ValueError('Username should not be empty')
         if not email:
             raise ValueError('Email should not be empty')
-        if not full_name:
-            raise ValueError('Name should not be empty')
         if not password:
             raise ValueError('Password should not be empty')
 
         user = self.model(
             username=username,
             email=self.normalize_email(email=email),
-            full_name=full_name
         )
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, username, email, full_name, password=None):
+    def create_superuser(self, username, email, password=None):
         user = self.create_user(
             username=username,
-            email=email, full_name=full_name, password=password)
+            email=email, password=password)
         user.is_superuser = True
         user.is_staff = True
         user.is_active = True
@@ -53,7 +50,6 @@ class User(AbstractBaseUser, PermissionsMixin):
         max_length=100, verbose_name='Username', unique=True)
     email = models.EmailField(
         max_length=100, verbose_name='Email', unique=True)
-    full_name = models.CharField(verbose_name='Full Name', max_length=100)
     date_joined = models.DateTimeField(
         verbose_name='Date Joined', auto_now_add=True)
     last_login = models.DateTimeField(auto_now=True)
@@ -67,12 +63,12 @@ class User(AbstractBaseUser, PermissionsMixin):
                                                                                                  'status')
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['full_name', 'username']
+    REQUIRED_FIELDS = ['username']
 
     objects = UserManager()
 
     def __str__(self):
-        return self.full_name
+        return self.username
 
 
 class UserInformationModel(BaseModel):
@@ -80,6 +76,8 @@ class UserInformationModel(BaseModel):
     Model to store user basic information
     """
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_information')
+    first_name = models.CharField(max_length=254)
+    last_name = models.CharField(max_length=254)
     phone_number = models.CharField(max_length=50, verbose_name="Phone Number")
     address_one = models.CharField(max_length=255)
     address_two = models.CharField(max_length=255, blank=True)

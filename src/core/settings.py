@@ -156,12 +156,18 @@ SIMPLE_JWT = {
 REST_AUTH_SERIALIZERS = {
     "LOGIN_SERIALIZER": "user.serializers.LoginSerializer"
 }
+
+REST_AUTH_REGISTER_SERIALIZERS = {
+    # "REGISTER_SERIALIZER": "user.serializers.RegisterSerializer"
+}
+
 REST_USE_JWT = True
 JWT_AUTH_COOKIE = 'access'
 JWT_AUTH_REFRESH_COOKIE = 'refresh'
 OLD_PASSWORD_FIELD_ENABLED = True
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_VERIFICATION = 'none'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
