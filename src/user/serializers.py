@@ -147,7 +147,6 @@ class LoginSerializer(serializers.Serializer):
         return attrs
 
 
-
 class TokenRefreshSerializer(serializers.Serializer):
     refresh = serializers.CharField()
 
@@ -197,11 +196,7 @@ class NewUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.User
-        fields = ['username', 'email', 'full_name', 'password1', 'password2']
-
-        extra_kwargs = {
-            'full_name': {'required': True},
-        }
+        fields = ['username', 'email', 'password1', 'password2']
 
     def validate(self, attrs):
         if attrs['password1'] != attrs['password2']:
@@ -214,7 +209,6 @@ class NewUserSerializer(serializers.ModelSerializer):
         user = models.User.objects.create(
             username=validated_data['username'],
             email=validated_data['email'],
-            full_name=validated_data['full_name'],
         )
         user.set_password(validated_data['password1'])
         user.save()

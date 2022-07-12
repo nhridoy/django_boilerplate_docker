@@ -12,7 +12,7 @@ urlpatterns = [
     path('password-validate/', views.PasswordValidateView.as_view()),
     path('change-password/', views.ChangePasswordView.as_view()),
     path('qr-create/', views.QRCreateView.as_view()),
-    path('token/refresh/', views.MyTokenRefreshView.as_view()),
+    # path('token/refresh/', views.MyTokenRefreshView.as_view()),
     path('token/verify/', TokenVerifyView.as_view()),
     # path('registration/', views.NewUserView.as_view()),
 ]
