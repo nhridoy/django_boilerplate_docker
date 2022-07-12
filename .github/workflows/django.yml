@@ -26,7 +26,7 @@ jobs:
           pip install -r requirements.txt
       - name: Run Tests
         run: |
-          cp .env.examplefordjangolocal /src
-          mv .env.examplefordjangolocal .env
+          sudo cp .env.examplefordjangolocal /src
+          sudo mv .env.examplefordjangolocal .env
           cd src
           python manage.py test
