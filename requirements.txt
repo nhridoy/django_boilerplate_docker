@@ -20,7 +20,6 @@ filelock==3.7.1
 idna==3.3
 importlib-metadata==4.11.4
 Markdown==3.3.7
-mysqlclient==2.1.0
 oauthlib==3.2.0
 Pillow==9.1.1
 platformdirs==2.5.2
