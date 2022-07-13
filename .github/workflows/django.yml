@@ -26,7 +26,7 @@ jobs:
           pip install -r requirements.txt
       - name: Copy env
         run: |
-          sudo cp .env.examplefordjangolocal /src
+          sudo cp .env.examplefordjangolocal src/
           sudo mv .env.examplefordjangolocal .env
           cd src
           ls -a
