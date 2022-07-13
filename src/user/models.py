@@ -1,9 +1,10 @@
-from django.db import models
-from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
+from django.contrib.auth.models import (AbstractBaseUser, BaseUserManager,
+                                        PermissionsMixin)
 from django.core.validators import FileExtensionValidator
-import pyotp
+from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+
 from core.models import BaseModel
 
 

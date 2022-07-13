@@ -1,17 +1,17 @@
+import jwt
 import pyotp
-from django.contrib.auth.hashers import make_password
-from django.contrib.auth import authenticate, password_validation, login
-from django.conf import settings
-from django.utils import timezone
-from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
-from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
-from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework_simplejwt import serializers as drf_serializers
-from user import models, serializers, apipermissions
-from rest_framework import generics, status, response, permissions, views, exceptions
-import string, random, jwt
-from django.core.exceptions import ValidationError
 from cryptography.fernet import Fernet
+from django.conf import settings
+from django.contrib.auth import authenticate, login, password_validation
+from django.core.exceptions import ValidationError
+from django.utils import timezone
+from rest_framework import (exceptions, generics, permissions, response,
+                            status, views)
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
+
+from user import apipermissions, models, serializers
 
 
 class MyTokenObtainPairView(TokenObtainPairView):
