@@ -27,8 +27,8 @@ jobs:
       - name: Copy env
         run: |
           sudo cp .env.examplefordjangolocal src/
-          sudo mv .env.examplefordjangolocal .env
           cd src
+          sudo mv .env.examplefordjangolocal .env
           ls -a
       - name: Run Tests
         run: |
