@@ -1,6 +1,6 @@
 import pyotp
 from django.contrib.auth.hashers import make_password
-from django.contrib.auth import authenticate, password_validation
+from django.contrib.auth import authenticate, password_validation, login
 from django.conf import settings
 from django.utils import timezone
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
@@ -28,13 +28,18 @@ class MyTokenObtainPairView(TokenObtainPairView):
                 serializer.is_valid(raise_exception=True)
                 otp = models.OTPModel.objects.get(user=user)
                 if not otp.is_active:
+                    if settings.REST_SESSION_LOGIN:
+                        login(request, user)
                     resp = response.Response()
                     resp.set_cookie(
-                        key='refresh', value=serializer.validated_data["refresh"], httponly=True, samesite='None',
+                        key=settings.JWT_AUTH_REFRESH_COOKIE,
+                        value=serializer.validated_data[settings.JWT_AUTH_REFRESH_COOKIE], httponly=True,
+                        samesite='None',
 
                         expires=(timezone.now() + settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME']))
                     resp.set_cookie(
-                        key='access', value=serializer.validated_data["access"], httponly=True, samesite='None',
+                        key=settings.JWT_AUTH_COOKIE, value=serializer.validated_data[settings.JWT_AUTH_COOKIE],
+                        httponly=True, samesite='None',
 
                         expires=(timezone.now() + settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME']))
                     resp.data = serializer.validated_data
@@ -107,10 +112,10 @@ class ChangePasswordView(generics.UpdateAPIView):
                     }
 
                     return response.Response(responses)
-                except ValidationError as exc:
-                    return response.Response({'message': exc}, status=status.HTTP_400_BAD_REQUEST)
+                except ValidationError as e:
+                    return response.Response({'detail': e}, status=status.HTTP_400_BAD_REQUEST)
             else:
-                return response.Response({'message': 'Passwords do not match'}, status=status.HTTP_400_BAD_REQUEST)
+                return response.Response({'detail': 'Passwords do not match'}, status=status.HTTP_400_BAD_REQUEST)
         return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -136,22 +141,25 @@ class OTPView(views.APIView):
         if totp.verify(otp):
             refresh = RefreshToken.for_user(current_user)
             refresh['email'] = current_user.email
+            if settings.REST_SESSION_LOGIN:
+                login(request, current_user)
             resp = response.Response()
             resp.set_cookie(
-                key='refresh', value=refresh, httponly=True, samesite='None',
+                key=settings.JWT_AUTH_REFRESH_COOKIE, value=refresh, httponly=True, samesite='None',
 
                 expires=(timezone.now() + settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME']))
             resp.set_cookie(
-                key='access', value=refresh.access_token, httponly=True, samesite='None',
+                key=settings.JWT_AUTH_COOKIE, value=refresh.access_token, httponly=True, samesite='None',
 
                 expires=(timezone.now() + settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME']))
-            resp.data = {'refresh': str(refresh), 'access': str(refresh.access_token)}
+            resp.data = {settings.JWT_AUTH_REFRESH_COOKIE: str(refresh),
+                         settings.JWT_AUTH_COOKIE: str(refresh.access_token)}
             resp.status_code = status.HTTP_200_OK
             return resp
-            # return response.Response({'refresh': str(refresh), 'access': str(refresh.access_token)},
+            # return response.Response({settings.JWT_AUTH_REFRESH_COOKIE: str(refresh), settings.JWT_AUTH_COOKIE: str(refresh.access_token)},
             #                          status=status.HTTP_200_OK)
         else:
-            return response.Response({'message': 'Wrong Token'}, status=status.HTTP_406_NOT_ACCEPTABLE)
+            return response.Response({'detail': 'Wrong Token'}, status=status.HTTP_406_NOT_ACCEPTABLE)
 
 
 class MyTokenRefreshView(generics.GenericAPIView):
@@ -161,19 +169,23 @@ class MyTokenRefreshView(generics.GenericAPIView):
     serializer_class = serializers.TokenRefreshSerializer
 
     def post(self, request, *args, **kwargs):
-        ser = self.serializer_class(data=request.data)
+        ser = self.serializer_class(data={
+            settings.JWT_AUTH_REFRESH_COOKIE: request.COOKIES.get(settings.JWT_AUTH_REFRESH_COOKIE) or request.data.get(
+                settings.JWT_AUTH_REFRESH_COOKIE)})
         try:
             ser.is_valid(raise_exception=True)
             resp = response.Response()
             try:
                 resp.set_cookie(
-                    key='refresh', value=ser.validated_data["refresh"], httponly=True, samesite='None',
+                    key=settings.JWT_AUTH_REFRESH_COOKIE, value=ser.validated_data[settings.JWT_AUTH_REFRESH_COOKIE],
+                    httponly=True, samesite='None',
 
                     expires=(timezone.now() + settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME']))
             except Exception as e:
                 pass
             resp.set_cookie(
-                key='access', value=ser.validated_data["access"], httponly=True, samesite='None',
+                key=settings.JWT_AUTH_COOKIE, value=ser.validated_data[settings.JWT_AUTH_COOKIE], httponly=True,
+                samesite='None',
 
                 expires=(timezone.now() + settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME']))
             resp.data = ser.validated_data
