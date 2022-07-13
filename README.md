@@ -1,11 +1,11 @@
-<center>
+<div style="text-align: center;">
 
 ![Oxygen - An API Ready starter boilerplate with Django and Django Rest Framework](https://img.icons8.com/external-flaticons-lineal-color-flat-icons/64/FA5252/external-oxygen-diving-flaticons-lineal-color-flat-icons-2.png)
 
 <b style="color: #ff56ff; font-size: 2rem;">Oxygen</b>
 
 <p style="font-size: 1.5rem">An API Ready starter boilerplate with Django and Django Rest Framework</p>
-</center>
+</div>
 
 # Oxygen
 
@@ -24,37 +24,87 @@
 
 1. Login: (Two Endpoints for currently)
 
-   POST: `account/login/` _OTP is not Supported, Session Authentication Supported_
+   POST: `account/login/` _OTP is not Supported_
+
+   _Payload:_
 
    ```json
-       "email": "",
-       "password": ""
+   {
+     "email": "",
+     "password": ""
+   }
    ```
 
-   POST: `account/token/` _OTP is Supported, Session Authentication Not Supported_
+   _Response: 200_
 
    ```json
-       "email": "",
-       "password": ""
+   {
+     "access_token": "",
+     "refresh_token": "",
+     "user": {
+       "pk": 1,
+       "email": ""
+     }
+   }
+   ```
+
+   POST: `account/token/` _OTP is Supported, Session Authentication Supported_
+
+   _Payload:_
+
+   ```json
+   {
+     "email": "",
+     "password": ""
+   }
+   ```
+
+   _Response: 200_
+
+   ```json
+   {
+     "refresh": "",
+     "access": ""
+   }
    ```
 
 2. Resigtration:
 
    POST: `account/registration/`
 
+   _Payload:_
+
    ```json
-      "email": "",
-      "username": "",
-      "password1": "",
-      "password2": ""
+   {
+     "email": "",
+     "username": "",
+     "password1": "",
+     "password2": ""
+   }
+   ```
+
+   _Response:_
+
+   ```json
+
    ```
 
 3. Logout: _Only for Cookie Based Authentication_
 
    POST: `account/logout/`
 
+   _Payload:_
+
    ```json
 
+   ```
+
+   _Response: 401_
+
+   ```json
+   {
+     "detail": "Refresh token was not included in request data."
+   }
    ```
 
 4. Password Change:
