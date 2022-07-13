@@ -2,12 +2,12 @@
 
 ![Oxygen - An API Ready starter boilerplate with Django and Django Rest Framework](https://img.icons8.com/external-flaticons-lineal-color-flat-icons/256/FA5252/external-oxygen-diving-flaticons-lineal-color-flat-icons-2.png)
 
-<h1 style="color: #ff56ff; font-size: 4rem;">Oxygen</h1>
+<h1 style="color: #ff56ff;">Oxygen</h1>
 
 <p style="font-size: 1.5rem">An API Ready starter boilerplate with Django and Django Rest Framework</p>
 </div>
 
-# Oxygen
+[![Django Test](https://github.com/nhridoy/oxygen/actions/workflows/django.yml/badge.svg)](https://github.com/nhridoy/oxygen/actions/workflows/django.yml)
 
 ## Features
 
