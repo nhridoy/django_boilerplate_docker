@@ -1,4 +1,4 @@
-<div style="text-align: center;">
+<div align="center">
 
 ![Oxygen - An API Ready starter boilerplate with Django and Django Rest Framework](https://img.icons8.com/external-flaticons-lineal-color-flat-icons/64/FA5252/external-oxygen-diving-flaticons-lineal-color-flat-icons-2.png)
 
