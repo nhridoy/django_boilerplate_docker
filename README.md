@@ -1,6 +1,6 @@
 <div align="center">
 
-![Oxygen - An API Ready starter boilerplate with Django and Django Rest Framework](https://img.icons8.com/external-flaticons-lineal-color-flat-icons/64/FA5252/external-oxygen-diving-flaticons-lineal-color-flat-icons-2.png)
+![Oxygen - An API Ready starter boilerplate with Django and Django Rest Framework](https://img.icons8.com/external-flaticons-lineal-color-flat-icons/256/FA5252/external-oxygen-diving-flaticons-lineal-color-flat-icons-2.png)
 
 <b style="color: #ff56ff; font-size: 2rem;">Oxygen</b>
 
