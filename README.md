@@ -2,7 +2,7 @@
 
 ![Oxygen - An API Ready starter boilerplate with Django and Django Rest Framework](https://img.icons8.com/external-flaticons-lineal-color-flat-icons/256/FA5252/external-oxygen-diving-flaticons-lineal-color-flat-icons-2.png)
 
-<b style="color: #ff56ff; font-size: 2rem;">Oxygen</b>
+<h1 style="color: #ff56ff; font-size: 4rem;">Oxygen</h1>
 
 <p style="font-size: 1.5rem">An API Ready starter boilerplate with Django and Django Rest Framework</p>
 </div>
