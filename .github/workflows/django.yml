@@ -29,9 +29,9 @@ jobs:
           sudo cp .env.examplefordjangolocal /src
           sudo mv .env.examplefordjangolocal .env
           cd src
-          ll
+          ls -a
       - name: Run Tests
         run: |
           cd src
-          ll
+          ls -a
           python manage.py test
