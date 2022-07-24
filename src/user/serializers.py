@@ -20,20 +20,24 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @staticmethod
     def validate_email_verification_status(user):
         from allauth.account import app_settings
+
         if (
-                app_settings.EMAIL_VERIFICATION == app_settings.EmailVerificationMethod.MANDATORY
-                and not user.emailaddress_set.filter(email=user.email, verified=True).exists()
+            app_settings.EMAIL_VERIFICATION
+            == app_settings.EmailVerificationMethod.MANDATORY
+            and not user.emailaddress_set.filter(
+                email=user.email, verified=True
+            ).exists()
         ):
-            raise serializers.ValidationError(_('E-mail is not verified.'))
+            raise serializers.ValidationError(_("E-mail is not verified."))
 
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
         cls.validate_email_verification_status(user)
         # Add custom claims
-        token['email'] = user.email
-        token['is_superuser'] = user.is_superuser
-        token['is_staff'] = user.is_staff
+        token["email"] = user.email
+        token["is_superuser"] = user.is_superuser
+        token["is_staff"] = user.is_staff
 
         return token
 
@@ -41,10 +45,10 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField(required=False, allow_blank=True)
     email = serializers.EmailField()
-    password = serializers.CharField(style={'input_type': 'password'})
+    password = serializers.CharField(style={"input_type": "password"})
 
     def authenticate(self, **kwargs):
-        return authenticate(self.context['request'], **kwargs)
+        return authenticate(self.context["request"], **kwargs)
 
     def _validate_email(self, email, password):
         if email and password:
@@ -79,11 +83,17 @@ class LoginSerializer(serializers.Serializer):
         from allauth.account import app_settings
 
         # Authentication through email
-        if app_settings.AUTHENTICATION_METHOD == app_settings.AuthenticationMethod.EMAIL:
+        if (
+            app_settings.AUTHENTICATION_METHOD
+            == app_settings.AuthenticationMethod.EMAIL
+        ):
             return self._validate_email(email, password)
 
         # Authentication through username
-        if app_settings.AUTHENTICATION_METHOD == app_settings.AuthenticationMethod.USERNAME:
+        if (
+            app_settings.AUTHENTICATION_METHOD
+            == app_settings.AuthenticationMethod.USERNAME
+        ):
             return self._validate_username(username, password)
 
         # Authentication through either username or email
@@ -97,7 +107,7 @@ class LoginSerializer(serializers.Serializer):
                 pass
 
         if username:
-            return self._validate_username_email(username, '', password)
+            return self._validate_username_email(username, "", password)
 
         return None
 
@@ -109,50 +119,54 @@ class LoginSerializer(serializers.Serializer):
         Returns the authenticated user instance if credentials are correct,
         else `None` will be returned
         """
-        if 'allauth' in settings.INSTALLED_APPS:
+        if "allauth" in settings.INSTALLED_APPS:
 
             # When `is_active` of a user is set to False, allauth tries to return template html
             # which does not exist. This is the solution for it. See issue #264.
             try:
                 return self.get_auth_user_using_allauth(username, email, password)
             except url_exceptions.NoReverseMatch:
-                msg = _('Unable to log in with provided credentials.')
+                msg = _("Unable to log in with provided credentials.")
                 raise exceptions.ValidationError(msg)
         return self.get_auth_user_using_orm(username, email, password)
 
     @staticmethod
     def validate_auth_user_status(user):
         if not user.is_active:
-            msg = _('User account is disabled.')
+            msg = _("User account is disabled.")
             raise exceptions.ValidationError(msg)
 
     @staticmethod
     def validate_email_verification_status(user):
         from allauth.account import app_settings
+
         if (
-                app_settings.EMAIL_VERIFICATION == app_settings.EmailVerificationMethod.MANDATORY
-                and not user.emailaddress_set.filter(email=user.email, verified=True).exists()
+            app_settings.EMAIL_VERIFICATION
+            == app_settings.EmailVerificationMethod.MANDATORY
+            and not user.emailaddress_set.filter(
+                email=user.email, verified=True
+            ).exists()
         ):
-            raise serializers.ValidationError(_('E-mail is not verified.'))
+            raise serializers.ValidationError(_("E-mail is not verified."))
 
     def validate(self, attrs):
-        username = attrs.get('username')
-        email = attrs.get('email')
-        password = attrs.get('password')
+        username = attrs.get("username")
+        email = attrs.get("email")
+        password = attrs.get("password")
         user = self.get_auth_user(username, email, password)
 
         if not user:
-            msg = _('Unable to log in with provided credentials.')
+            msg = _("Unable to log in with provided credentials.")
             raise exceptions.ValidationError(msg)
 
         # Did we get back an active user?
         self.validate_auth_user_status(user)
 
         # If required, is the email verified?
-        if 'dj_rest_auth.registration' in settings.INSTALLED_APPS:
+        if "dj_rest_auth.registration" in settings.INSTALLED_APPS:
             self.validate_email_verification_status(user)
 
-        attrs['user'] = user
+        attrs["user"] = user
         return attrs
 
 
@@ -189,37 +203,47 @@ class NewUserSerializer(serializers.ModelSerializer):
     """
     New User Registration Serializer
     """
+
     email = serializers.EmailField(
         required=True,
-        validators=[validators.UniqueValidator(queryset=models.User.objects.all())]
+        validators=[validators.UniqueValidator(queryset=models.User.objects.all())],
     )
     username = serializers.CharField(
-        required=True,
-        validators=[UnicodeUsernameValidator()]
+        required=True, validators=[UnicodeUsernameValidator()]
     )
 
-    password1 = serializers.CharField(style={'input_type': 'password'}, write_only=True, required=True,
-                                      validators=[validate_password])
-    password2 = serializers.CharField(style={'input_type': 'password'}, write_only=True, required=True,
-                                      label='Retype Password')
+    password1 = serializers.CharField(
+        style={"input_type": "password"},
+        write_only=True,
+        required=True,
+        validators=[validate_password],
+    )
+    password2 = serializers.CharField(
+        style={"input_type": "password"},
+        write_only=True,
+        required=True,
+        label="Retype Password",
+    )
 
     class Meta:
         model = models.User
-        fields = ['username', 'email', 'password1', 'password2']
+        fields = ["username", "email", "password1", "password2"]
 
     def validate(self, attrs):
-        if attrs['password1'] != attrs['password2']:
-            raise validators.ValidationError({'password1': "Password Doesn't Match"})
-        if models.User.objects.filter(username=attrs['username']).exists():
-            raise validators.ValidationError({'username': 'user with this User ID already exists.'})
+        if attrs["password1"] != attrs["password2"]:
+            raise validators.ValidationError({"password1": "Password Doesn't Match"})
+        if models.User.objects.filter(username=attrs["username"]).exists():
+            raise validators.ValidationError(
+                {"username": "user with this User ID already exists."}
+            )
         return attrs
 
     def create(self, validated_data):
         user = models.User.objects.create(
-            username=validated_data['username'],
-            email=validated_data['email'],
+            username=validated_data["username"],
+            email=validated_data["email"],
         )
-        user.set_password(validated_data['password1'])
+        user.set_password(validated_data["password1"])
         user.save()
         return user
 
@@ -228,6 +252,7 @@ class ChangePasswordSerializer(serializers.Serializer):
     """
     Serializer for password change endpoint.
     """
+
     model = models.User
 
     old_password = serializers.CharField(required=True)
