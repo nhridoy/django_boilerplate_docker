@@ -9,24 +9,24 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:  # https://github.com/stefanzweifel/git-auto-commit-action#checkout-the-correct-branch
             ref: ${{ github.head_ref }}
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
       - run: pip install black isort
       - run: isort ./src --gitignore --check
       - run: black --check ./src
       - name: If needed, commit black changes to the pull request
         if: failure()
         run: |
-          printenv | grep GITHUB
+          # printenv | grep GITHUB
           git config --global user.name 'Nahidujjaman Hridoy'
           git config --global user.email 'hridoyboss12@gmail.com'          
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
           isort ./src --gitignore
           black ./src
           git status
-          git add -A
-          git commit -asm "fixup! Format Python code with psf/black pull_request"
-          git push
+          # git add -A
+          # git commit -asm "fixup! Format Python code with psf/black pull_request"
+          # git push
           # git push --force origin
