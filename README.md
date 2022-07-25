@@ -8,6 +8,7 @@
 </div>
 
 [![Django Test](https://github.com/nhridoy/oxygen/actions/workflows/django.yml/badge.svg)](https://github.com/nhridoy/oxygen/actions/workflows/django.yml)
+[![Black](https://github.com/nhridoy/oxygen/actions/workflows/black.yml/badge.svg)](https://github.com/nhridoy/oxygen/actions/workflows/black.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Features
