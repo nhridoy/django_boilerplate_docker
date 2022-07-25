@@ -149,6 +149,14 @@ If you feel generous, you can donate to this project to this following link.
 
 ---
 
+**_Contributors:_**
+
+<a href="https://github.com/nhridoy/oxygen/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=nhridoy/oxygen&max=100&columns=12" />
+</a>
+
+Made with [contrib.rocks](https://contrib.rocks).
+
 **_Current Donators:_**
 
 ## TODO
