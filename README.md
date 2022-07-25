@@ -13,14 +13,18 @@
 
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://GitHub.com/Naereen/StrapDown.js/graphs/commit-activity)
 ![Maintainer](https://img.shields.io/badge/Maintainer-nhridoy-blue)
-[![GitHub latest commit](https://badgen.net/github/last-commit/Naereen/Strapdown.js)](https://gitHub.com/nhridoy/oxygen/commit/)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/y/nhridoy/oxygen)
+![GitHub last commit](https://img.shields.io/github/last-commit/nhridoy/oxygen)
 [![GitHub contributors](https://img.shields.io/github/contributors/nhridoy/oxygen.svg)](https://GitHub.com/nhridoy/oxygen/graphs/contributors/)
 
 [![GitHub forks](https://img.shields.io/github/forks/nhridoy/oxygen.svg?style=social&label=Fork&maxAge=2592000)](https://GitHub.com/nhridoy/oxygen/network/)
 [![GitHub stars](https://img.shields.io/github/stars/nhridoy/oxygen.svg?style=social&label=Star&maxAge=2592000)](https://GitHub.com/nhridoy/oxygennhridoy/oxygen/stargazers/)
 [![GitHub watchers](https://img.shields.io/github/watchers/nhridoy/oxygen.svg?style=social&label=Watch&maxAge=2592000)](https://gitHub.com/nhridoy/oxygen/watchers/)
 
-[![forthebadge made-with-python](http://ForTheBadge.com/images/badges/made-with-python.svg)](https://www.python.org/)
+![Lines of code](https://img.shields.io/tokei/lines/github/nhridoy/oxygen)
+![GitHub repo size](https://img.shields.io/github/repo-size/nhridoy/oxygen)
+
+[![forthebadge](https://forthebadge.com/images/badges/made-with-python.svg)](https://www.python.org/)
 
 ![Dependabot](https://img.shields.io/badge/dependabot-025E8C?style=for-the-badge&logo=dependabot&logoColor=white)
 ![GitHub Actions](https://img.shields.io/badge/github%20actions-%232671E5.svg?style=for-the-badge&logo=githubactions&logoColor=white)
@@ -185,4 +189,4 @@ Made with [contrib.rocks](https://contrib.rocks).
 - Create a demo frontend
 - And More
 
-[![Open Source Love svg1](https://badges.frapsoft.com/os/v1/open-source.svg?v=103)](https://github.com/ellerbrock/open-source-badges/)
+[![Open Source Love svg1](https://badges.frapsoft.com/os/v3/open-source.svg?v=103)](https://github.com/ellerbrock/open-source-badges/)
