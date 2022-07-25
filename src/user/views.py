@@ -19,8 +19,6 @@ class MyTokenObtainPairView(TokenObtainPairView):
     JWT Custom Token Claims View
     """
 
-    
-    
     serializer_class = serializers.MyTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
@@ -136,7 +134,7 @@ class ChangePasswordView(generics.UpdateAPIView):
                     responses = {
                         "status": "success",
                         "code": status.HTTP_200_OK,
-                        "message": 'Password updated successfully',
+                        "message": "Password updated successfully",
                         "data": [],
                     }
 
