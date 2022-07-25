@@ -1,3 +1,4 @@
+import contextlib
 import jwt
 import pyotp
 from cryptography.fernet import Fernet
@@ -67,7 +68,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
                         {"secret": fer_key}, status=status.HTTP_202_ACCEPTED
                     )
             except TokenError as e:
-                raise InvalidToken(e.args[0])
+                raise InvalidToken(e.args[0]) from e
         except Exception as e:
             serializer.is_valid(raise_exception=True)
             return response.Response(
@@ -85,8 +86,7 @@ class PasswordValidateView(views.APIView):
     def post(self, request, *args, **kwargs):
         current_user = self.request.user
         password = self.request.data["password"]
-        user = authenticate(username=current_user.email, password=password)
-        if user:
+        if user := authenticate(username=current_user.email, password=password):
             return response.Response(
                 {"message": "Password Accepted"}, status=status.HTTP_200_OK
             )
@@ -105,8 +105,7 @@ class ChangePasswordView(generics.UpdateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self, queryset=None):
-        obj = self.request.user
-        return obj
+        return self.request.user
 
     def update(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -123,29 +122,28 @@ class ChangePasswordView(generics.UpdateAPIView):
             password = serializer.data.get("password")
             retype_password = serializer.data.get("retype_password")
 
-            if password == retype_password:
-                try:
-                    password_validation.validate_password(
-                        password=password, user=self.request.user
-                    )
-                    self.object.set_password(password)
-                    self.object.save()
-                    responses = {
-                        "status": "success",
-                        "code": status.HTTP_200_OK,
-                        "message": "Password updated successfully",
-                        "data": [],
-                    }
-
-                    return response.Response(responses)
-                except ValidationError as e:
-                    return response.Response(
-                        {"detail": e}, status=status.HTTP_400_BAD_REQUEST
-                    )
-            else:
+            if password != retype_password:
                 return response.Response(
                     {"detail": "Passwords do not match"},
                     status=status.HTTP_400_BAD_REQUEST,
+                )
+            try:
+                password_validation.validate_password(
+                    password=password, user=self.request.user
+                )
+                self.object.set_password(password)
+                self.object.save()
+                responses = {
+                    "status": "success",
+                    "code": status.HTTP_200_OK,
+                    "message": "Password updated successfully",
+                    "data": [],
+                }
+
+                return response.Response(responses)
+            except ValidationError as e:
+                return response.Response(
+                    {"detail": e}, status=status.HTTP_400_BAD_REQUEST
                 )
         return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -228,7 +226,7 @@ class MyTokenRefreshView(generics.GenericAPIView):
         try:
             ser.is_valid(raise_exception=True)
             resp = response.Response()
-            try:
+            with contextlib.suppress(Exception):
                 resp.set_cookie(
                     key=settings.JWT_AUTH_REFRESH_COOKIE,
                     value=ser.validated_data[settings.JWT_AUTH_REFRESH_COOKIE],
@@ -238,8 +236,6 @@ class MyTokenRefreshView(generics.GenericAPIView):
                         timezone.now() + settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]
                     ),
                 )
-            except Exception as e:
-                pass
             resp.set_cookie(
                 key=settings.JWT_AUTH_COOKIE,
                 value=ser.validated_data[settings.JWT_AUTH_COOKIE],
@@ -250,9 +246,9 @@ class MyTokenRefreshView(generics.GenericAPIView):
             resp.data = ser.validated_data
             resp.status_code = status.HTTP_200_OK
             return resp
-            # return response.Response(ser.validated_data)
+                # return response.Response(ser.validated_data)
         except Exception as e:
-            raise exceptions.AuthenticationFailed(detail=e)
+            raise exceptions.AuthenticationFailed(detail=e) from e
 
 
 class QRCreateView(views.APIView):

@@ -1,3 +1,4 @@
+import contextlib
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
@@ -125,9 +126,9 @@ class LoginSerializer(serializers.Serializer):
             # which does not exist. This is the solution for it. See issue #264.
             try:
                 return self.get_auth_user_using_allauth(username, email, password)
-            except url_exceptions.NoReverseMatch:
+            except url_exceptions.NoReverseMatch as e:
                 msg = _("Unable to log in with provided credentials.")
-                raise exceptions.ValidationError(msg)
+                raise exceptions.ValidationError(msg) from e
         return self.get_auth_user_using_orm(username, email, password)
 
     @staticmethod
@@ -182,14 +183,10 @@ class TokenRefreshSerializer(serializers.Serializer):
 
         if jwt_settings.api_settings.ROTATE_REFRESH_TOKENS:
             if jwt_settings.api_settings.BLACKLIST_AFTER_ROTATION:
-                try:
+                with contextlib.suppress(AttributeError):
                     # Attempt to blacklist the given refresh token
+                    # If blacklist app not installed, `blacklist` method will not be present
                     refresh.blacklist()
-                except AttributeError:
-                    # If blacklist app not installed, `blacklist` method will
-                    # not be present
-                    pass
-
             refresh.set_jti()
             refresh.set_exp()
             refresh.set_iat()
