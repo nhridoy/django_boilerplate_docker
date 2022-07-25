@@ -24,6 +24,8 @@ if os.getenv('SECRET_KEY'):
     ON_PRODUCTION = os.environ.get('ON_PRODUCTION') == "True"
     DJANGO_SECRET_KEY = os.environ.get('SECRET_KEY')
     DJANGO_DEBUG = os.environ.get('DEBUG') == "True"
+
+    # Database configuration
     DJANGO_DB_ENGINE = os.environ.get('DB_ENGINE')
     DJANGO_DB_NAME = os.environ.get('DB_NAME')
     DJANGO_DB_USER = os.environ.get('DB_USER')
@@ -32,6 +34,8 @@ if os.getenv('SECRET_KEY'):
     SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT') == 'True'
     HOSTS = os.environ.get('ALLOWED_HOSTS').split(',')
     CORS_HOSTS = os.environ.get('CORS_HOSTS').split(',')
+
+    # Email configuration
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = os.environ.get('EMAIL_HOST')
     EMAIL_PORT = os.environ.get('EMAIL_PORT')
@@ -51,6 +55,8 @@ else:
     ON_PRODUCTION = env('ON_PRODUCTION') == "True"
     DJANGO_SECRET_KEY = env('SECRET_KEY')
     DJANGO_DEBUG = env('DEBUG') == "True"
+
+    # Database configuration
     DJANGO_DB_ENGINE = env('DB_ENGINE')
     DJANGO_DB_NAME = env('DB_NAME')
     DJANGO_DB_USER = env('DB_USER')
@@ -59,6 +65,8 @@ else:
     SECURE_SSL_REDIRECT = env('SECURE_SSL_REDIRECT')
     HOSTS = env('ALLOWED_HOSTS').split(',')
     CORS_HOSTS = env('CORS_HOSTS').split(',')
+
+    # Email configuration
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = env('EMAIL_HOST')
     EMAIL_PORT = env('EMAIL_PORT')
@@ -90,13 +98,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # Installed Apps
-    'user',
-
     # Third Party
+    "corsheaders",
     'rest_framework',
     'rest_framework.authtoken',
-    "corsheaders",
     'rest_framework_simplejwt.token_blacklist',
     'rest_framework_simplejwt',
     'django_cleanup.apps.CleanupConfig',
@@ -104,6 +109,10 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'dj_rest_auth.registration',
+
+    # Installed Apps
+    'user',
+
 ]
 
 REST_FRAMEWORK = {
@@ -121,7 +130,7 @@ REST_FRAMEWORK = {
     ],
     # 'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
-
+# If you are not using JWT Authentication system please comment this section
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=90),
@@ -189,7 +198,7 @@ ROOT_URLCONF = 'core.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [],  # create Template directory and set template directory here as -> 'DIRS': [BASE_DIR/'template']
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -219,6 +228,7 @@ if ON_PRODUCTION:
         }
     }
 else:
+    # SqliteDB
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -248,7 +258,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'UTC'  # change as per your region Ex: 'America/New_York' | 'Europe/Paris' | 'Europe/London' | 'Asia/Dhaka'
 
 USE_I18N = True
 
