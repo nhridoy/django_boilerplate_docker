@@ -1,5 +1,5 @@
 name: auto-format
-on: pull_request
+on: [push, pull_request]
 jobs:
   format:
     # Check if the PR is not from a fork
@@ -10,7 +10,7 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
       - name: black
-        uses: lgeiger/black-action@v1.0.1
+        uses: psf/black@stable
         with:
           args: "./src"
       - name: Check for modified files
