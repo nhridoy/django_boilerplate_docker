@@ -130,7 +130,7 @@ I know that this project has a lot of improvement to do. If you want to make imp
 
 _N.B. Make sure to provide a good documentation of your pull request._
 
-**NOTE: We use black and isort as code formatter. So while contributing make sure to run below command in your bash terminal to activate pre commit**
+**NOTE: We use black and isort as code formatter. So while contributing make sure to run below command in your git-bash terminal to activate pre commit**
 
 ```bash
 bash pre-commit.sh
