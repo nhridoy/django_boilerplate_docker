@@ -20,13 +20,22 @@ jobs:
         if: failure()
         run: |
           # printenv | grep GITHUB
-          git config --global user.name 'Nahidujjaman Hridoy'
-          git config --global user.email 'hridoyboss12@gmail.com'          
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
+          # git config --global user.name 'Nahidujjaman Hridoy'
+          # git config --global user.email 'hridoyboss12@gmail.com'          
+          # git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
           isort ./src --gitignore
           black ./src
           git status
-          git add -A
-          git commit -asm "fixup! Format Python code with psf/black pull_request"
-          git push
+          # git add -A
+          # git commit -asm "fixup! Format Python code with psf/black pull_request"
+          # git push
           # git push --force origin
+      - uses: gr2m/create-or-update-pull-request-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          branch: "main"
+          # author: "Lorem J. Ipsum <lorem@example.com>"
+          path: "src/"
+          commit-message: "build: data updated"
+          update-pull-request-title-and-body: false
