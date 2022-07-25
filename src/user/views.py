@@ -1,4 +1,5 @@
 import contextlib
+
 import jwt
 import pyotp
 from cryptography.fernet import Fernet
@@ -246,7 +247,7 @@ class MyTokenRefreshView(generics.GenericAPIView):
             resp.data = ser.validated_data
             resp.status_code = status.HTTP_200_OK
             return resp
-                # return response.Response(ser.validated_data)
+            # return response.Response(ser.validated_data)
         except Exception as e:
             raise exceptions.AuthenticationFailed(detail=e) from e
 
