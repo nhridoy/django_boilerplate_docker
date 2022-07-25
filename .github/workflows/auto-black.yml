@@ -26,7 +26,7 @@ jobs:
           isort ./src --gitignore
           black ./src
           git status
-          # git add -A
-          # git commit -asm "fixup! Format Python code with psf/black pull_request"
-          # git push
+          git add -A
+          git commit -asm "fixup! Format Python code with psf/black pull_request"
+          git push
           # git push --force origin
