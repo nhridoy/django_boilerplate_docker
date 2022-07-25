@@ -19,6 +19,8 @@ class MyTokenObtainPairView(TokenObtainPairView):
     JWT Custom Token Claims View
     """
 
+    
+    
     serializer_class = serializers.MyTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
