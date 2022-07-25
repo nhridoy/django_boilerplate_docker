@@ -1,7 +1,3 @@
-import jwt
-import pyotp
-from cryptography.fernet import Fernet
-from django.conf import settings
 from django.contrib.auth import authenticate, login, password_validation
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -9,6 +5,11 @@ from rest_framework import exceptions, generics, permissions, response, status, 
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
+
+import jwt
+import pyotp
+from cryptography.fernet import Fernet
+from django.conf import settings
 
 from user import apipermissions, models, serializers
 
