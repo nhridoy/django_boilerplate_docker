@@ -5,8 +5,7 @@
 
 name: autoblack_pull_request
 on: [pull_request]
-permissions:
-  pull-requests: write
+permissions: write-all
   
 jobs:
   build:
