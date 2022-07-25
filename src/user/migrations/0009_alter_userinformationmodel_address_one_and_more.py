@@ -7,35 +7,37 @@ import django.utils.timezone
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('user', '0008_remove_user_address_one_remove_user_address_two_and_more'),
+        ("user", "0008_remove_user_address_one_remove_user_address_two_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='userinformationmodel',
-            name='address_one',
+            model_name="userinformationmodel",
+            name="address_one",
             field=models.CharField(max_length=255),
         ),
         migrations.AlterField(
-            model_name='userinformationmodel',
-            name='birth_date',
-            field=models.DateField(default=django.utils.timezone.now, verbose_name='Birth Date'),
+            model_name="userinformationmodel",
+            name="birth_date",
+            field=models.DateField(
+                default=django.utils.timezone.now, verbose_name="Birth Date"
+            ),
             preserve_default=False,
         ),
         migrations.AlterField(
-            model_name='userinformationmodel',
-            name='city',
+            model_name="userinformationmodel",
+            name="city",
             field=models.CharField(max_length=255),
         ),
         migrations.AlterField(
-            model_name='userinformationmodel',
-            name='country',
-            field=models.CharField(max_length=50, verbose_name='Country'),
+            model_name="userinformationmodel",
+            name="country",
+            field=models.CharField(max_length=50, verbose_name="Country"),
         ),
         migrations.AlterField(
-            model_name='userinformationmodel',
-            name='zipcode',
-            field=models.CharField(default='', max_length=255),
+            model_name="userinformationmodel",
+            name="zipcode",
+            field=models.CharField(default="", max_length=255),
             preserve_default=False,
         ),
     ]

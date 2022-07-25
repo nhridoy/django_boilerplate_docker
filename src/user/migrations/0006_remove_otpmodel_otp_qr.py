@@ -6,12 +6,12 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('user', '0005_otpmodel_otp_qr_alter_otpmodel_key'),
+        ("user", "0005_otpmodel_otp_qr_alter_otpmodel_key"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='otpmodel',
-            name='otp_qr',
+            model_name="otpmodel",
+            name="otp_qr",
         ),
     ]

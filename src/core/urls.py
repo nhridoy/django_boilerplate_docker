@@ -20,9 +20,9 @@ from django.urls import include, path, re_path
 from django.views.static import serve
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('account/', include('user.urls')),
-    path('account/', include('dj_rest_auth.urls')),
-    path('account/registration/', include('dj_rest_auth.registration.urls')),
-    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+    path("admin/", admin.site.urls),
+    path("account/", include("user.urls")),
+    path("account/", include("dj_rest_auth.urls")),
+    path("account/registration/", include("dj_rest_auth.registration.urls")),
+    re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

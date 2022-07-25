@@ -6,18 +6,18 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('user', '0004_otpmodel'),
+        ("user", "0004_otpmodel"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='otpmodel',
-            name='otp_qr',
+            model_name="otpmodel",
+            name="otp_qr",
             field=models.TextField(blank=True),
         ),
         migrations.AlterField(
-            model_name='otpmodel',
-            name='key',
+            model_name="otpmodel",
+            name="key",
             field=models.CharField(blank=True, max_length=255, unique=True),
         ),
     ]

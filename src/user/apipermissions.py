@@ -9,5 +9,14 @@ class IsSuperUser(permissions.BasePermission):
     # message = "You don't have access to view this page"
 
     def has_permission(self, request, view):
-        return bool(request.user and request.user.is_authenticated and (
-            (request.user.is_active and request.user.is_staff and request.user.is_superuser)))
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and (
+                (
+                    request.user.is_active
+                    and request.user.is_staff
+                    and request.user.is_superuser
+                )
+            )
+        )

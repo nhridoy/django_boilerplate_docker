@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('user', '0006_remove_otpmodel_otp_qr'),
+        ("user", "0006_remove_otpmodel_otp_qr"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='otpmodel',
-            name='key',
+            model_name="otpmodel",
+            name="key",
             field=models.TextField(blank=True, unique=True),
         ),
     ]
