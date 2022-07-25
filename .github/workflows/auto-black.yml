@@ -25,9 +25,8 @@ jobs:
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
           isort ./src --gitignore
           black ./src
-          ls
           git status
-          git add .
-          git commit -am "fixup! Format Python code with psf/black pull_request"
+          git add -A
+          git commit -asm "fixup! Format Python code with psf/black pull_request"
           git push
           # git push --force origin
