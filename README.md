@@ -184,3 +184,5 @@ Made with [contrib.rocks](https://contrib.rocks).
 - Include Social Authentication
 - Create a demo frontend
 - And More
+
+[![Open Source Love svg1](https://badges.frapsoft.com/os/v1/open-source.svg?v=103)](https://github.com/ellerbrock/open-source-badges/)
