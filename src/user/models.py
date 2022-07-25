@@ -1,14 +1,17 @@
-from django.contrib.auth.models import (
-    AbstractBaseUser,
-    BaseUserManager,
-    PermissionsMixin,
-)
+
 from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+
 from core.models import BaseModel
+
+from django.contrib.auth.models import (
+    AbstractBaseUser,
+    BaseUserManager,
+    PermissionsMixin,
+)
 
 # Create your models here.
 
@@ -21,14 +24,21 @@ class UserManager(BaseUserManager):
     def create_user(self, username, email, password=None):
 
         if not username:
-            raise ValueError("Username should not be empty")
+            raise ValueError('Username should not be empty')
+            
+            
         if not email:
             raise ValueError("Email should not be empty")
+            
+            
         if not password:
             raise ValueError("Password should not be empty")
+            
+            
 
         user = self.model(
             username=username,
+            
             email=self.normalize_email(email=email),
         )
         user.set_password(password)
@@ -36,6 +46,7 @@ class UserManager(BaseUserManager):
         return user
 
     def create_superuser(self, username, email, password=None):
+        
         user = self.create_user(username=username, email=email, password=password)
         user.is_superuser = True
         user.is_staff = True
@@ -50,6 +61,18 @@ class User(AbstractBaseUser, PermissionsMixin):
     """
 
     username = models.CharField(max_length=100, verbose_name="Username", unique=True)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     email = models.EmailField(max_length=100, verbose_name="Email", unique=True)
     date_joined = models.DateTimeField(verbose_name="Date Joined", auto_now_add=True)
     last_login = models.DateTimeField(auto_now=True)
@@ -70,6 +93,23 @@ class User(AbstractBaseUser, PermissionsMixin):
         help_text="Designate if the " "user has superuser " "status",
     )
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]
 
@@ -86,16 +126,30 @@ class UserInformationModel(BaseModel):
 
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="user_information"
+        
     )
     first_name = models.CharField(max_length=254)
+    
+    
     last_name = models.CharField(max_length=254)
     phone_number = models.CharField(max_length=50, verbose_name="Phone Number")
+    
     address_one = models.CharField(max_length=255)
+    
+    
     address_two = models.CharField(max_length=255, blank=True)
     city = models.CharField(max_length=100)
+    
+    
+    
     zipcode = models.CharField(max_length=50)
     country = models.CharField(verbose_name="Country", max_length=100)
     profile_pic = models.ImageField(upload_to="users/", default="users/default.png")
+    
+    
+    
+    
+    
     birth_date = models.DateField(verbose_name="Birth Date", null=True)
     gender_options = (
         ("Male", "Male"),
