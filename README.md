@@ -8,8 +8,22 @@
 
 [![Django Test](https://github.com/nhridoy/oxygen/actions/workflows/django.yml/badge.svg)](https://github.com/nhridoy/oxygen/actions/workflows/django.yml)
 [![Black](https://github.com/nhridoy/oxygen/actions/workflows/black.yml/badge.svg)](https://github.com/nhridoy/oxygen/actions/workflows/black.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/nhridoy/oxygen/blob/main/LICENSE)
 <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
+
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://GitHub.com/Naereen/StrapDown.js/graphs/commit-activity)
+![Maintainer](https://img.shields.io/badge/Maintainer-nhridoy-blue)
+[![GitHub latest commit](https://badgen.net/github/last-commit/Naereen/Strapdown.js)](https://gitHub.com/nhridoy/oxygen/commit/)
+[![GitHub contributors](https://img.shields.io/github/contributors/nhridoy/oxygen.svg)](https://GitHub.com/nhridoy/oxygen/graphs/contributors/)
+
+[![GitHub forks](https://img.shields.io/github/forks/nhridoy/oxygen.svg?style=social&label=Fork&maxAge=2592000)](https://GitHub.com/nhridoy/oxygen/network/)
+[![GitHub stars](https://img.shields.io/github/stars/nhridoy/oxygen.svg?style=social&label=Star&maxAge=2592000)](https://GitHub.com/nhridoy/oxygennhridoy/oxygen/stargazers/)
+[![GitHub watchers](https://img.shields.io/github/watchers/nhridoy/oxygen.svg?style=social&label=Watch&maxAge=2592000)](https://gitHub.com/nhridoy/oxygen/watchers/)
+
+[![forthebadge made-with-python](http://ForTheBadge.com/images/badges/made-with-python.svg)](https://www.python.org/)
+
+![Dependabot](https://img.shields.io/badge/dependabot-025E8C?style=for-the-badge&logo=dependabot&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/github%20actions-%232671E5.svg?style=for-the-badge&logo=githubactions&logoColor=white)
 
 </div>
 
@@ -150,6 +164,8 @@ If you feel generous, you can donate to this project to this following link.
 ---
 
 **_Contributors:_**
+
+[![GitHub contributors](https://img.shields.io/github/contributors/nhridoy/oxygen.svg)](https://GitHub.com/nhridoy/oxygen/graphs/contributors/)
 
 <a href="https://github.com/nhridoy/oxygen/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=nhridoy/oxygen&max=100&columns=12" />
