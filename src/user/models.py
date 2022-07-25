@@ -10,7 +10,6 @@ from django.dispatch import receiver
 
 from core.models import BaseModel
 
-
 # Create your models here.
 
 
