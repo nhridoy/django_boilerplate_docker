@@ -130,6 +130,12 @@ I know that this project has a lot of improvement to do. If you want to make imp
 
 _N.B. Make sure to provide a good documentation of your pull request._
 
+**NOTE: We use black and isort as code formatter. So while contributing make sure to run below command in your bash terminal to activate pre commit**
+
+```bash
+bash pre-commit.sh
+```
+
 ### Give star and share
 
 You can give star to this project and share with your developer friends. So that they can start their next big startup easily from here.
