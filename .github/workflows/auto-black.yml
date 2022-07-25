@@ -23,15 +23,10 @@ jobs:
           git config --global user.name 'Nahidujjaman Hridoy'
           git config --global user.email 'hridoyboss12@gmail.com'          
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
-          git remote -v
-          git branch
-          git status
           isort ./src --gitignore
-          git status
           black ./src
           git status
-          echo ready to commit
+          git add .
           git commit -am "fixup! Format Python code with psf/black pull_request"
-          echo ready to push
           git push
           # git push --force origin
