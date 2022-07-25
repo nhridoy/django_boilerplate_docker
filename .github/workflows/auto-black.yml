@@ -32,6 +32,8 @@ jobs:
       #     # git commit -asm "fixup! Format Python code with psf/black pull_request"
       #     # git push
       #     # git push --force origin
+      - run: |
+          isort ./src --gitignore
       - name: Run linters
         uses: wearerequired/lint-action@v2
         with:
