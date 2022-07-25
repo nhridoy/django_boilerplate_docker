@@ -14,7 +14,7 @@ jobs:
             ref: ${{ github.head_ref }}
       - uses: actions/setup-python@v2
       - run: pip install black isort
-      - run: isort ./src --gitignore
+      - run: isort ./src --gitignore --check
       - run: black --check ./src
       - name: If needed, commit black changes to the pull request
         if: failure()
@@ -25,6 +25,8 @@ jobs:
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
           git remote -v
           git branch
+          git status
+          isort ./src --gitignore
           git status
           black ./src
           git status
