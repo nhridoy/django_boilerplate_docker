@@ -23,6 +23,9 @@ class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = serializers.MyTokenObtainPairSerializer
 
     def direct_login(self, request, user, serializer):
+        """
+        Method for login without OTP
+        """
         if settings.REST_SESSION_LOGIN:
             login(request, user)
         resp = response.Response()
@@ -45,6 +48,9 @@ class MyTokenObtainPairView(TokenObtainPairView):
         return resp
 
     def otp_login(self, user):
+        """
+        Method for returning secret key if OTP is active for user
+        """
         key = bytes(settings.SECRET_KEY, "utf-8")
         refresh_token = RefreshToken.for_user(user)
 
