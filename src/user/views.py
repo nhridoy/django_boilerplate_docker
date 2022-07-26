@@ -22,7 +22,8 @@ class MyTokenObtainPairView(TokenObtainPairView):
 
     serializer_class = serializers.MyTokenObtainPairSerializer
 
-    def direct_login(self, request, user, serializer):
+    @staticmethod
+    def direct_login(request, user, serializer):
         """
         Method for login without OTP
         """
@@ -47,7 +48,8 @@ class MyTokenObtainPairView(TokenObtainPairView):
         resp.status_code = status.HTTP_200_OK
         return resp
 
-    def otp_login(self, user):
+    @staticmethod
+    def otp_login(user):
         """
         Method for returning secret key if OTP is active for user
         """
