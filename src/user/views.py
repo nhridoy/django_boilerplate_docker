@@ -22,6 +22,46 @@ class MyTokenObtainPairView(TokenObtainPairView):
 
     serializer_class = serializers.MyTokenObtainPairSerializer
 
+    def direct_login(self, request, user, serializer):
+        if settings.REST_SESSION_LOGIN:
+            login(request, user)
+        resp = response.Response()
+        resp.set_cookie(
+            key=settings.JWT_AUTH_REFRESH_COOKIE,
+            value=serializer.validated_data[
+                settings.JWT_AUTH_REFRESH_COOKIE
+            ],
+            httponly=settings.JWT_AUTH_HTTPONLY,
+            samesite=settings.JWT_AUTH_SAMESITE,
+            expires=(
+                    timezone.now()
+                    + settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]
+            ),
+        )
+        resp.set_cookie(
+            key=settings.JWT_AUTH_COOKIE,
+            value=serializer.validated_data[settings.JWT_AUTH_COOKIE],
+            httponly=settings.JWT_AUTH_HTTPONLY,
+            samesite=settings.JWT_AUTH_SAMESITE,
+            expires=(
+                    timezone.now()
+                    + settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]
+            ),
+        )
+        resp.data = serializer.validated_data
+        resp.status_code = status.HTTP_200_OK
+        return resp
+
+    def otp_login(self, user):
+        key = bytes(settings.SECRET_KEY, "utf-8")
+        refresh_token = RefreshToken.for_user(user)
+
+        fer_key = Fernet(key).encrypt(bytes(str(refresh_token), "utf-8"))
+
+        return response.Response(
+            {"secret": fer_key}, status=status.HTTP_202_ACCEPTED
+        )
+
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         try:
@@ -29,45 +69,10 @@ class MyTokenObtainPairView(TokenObtainPairView):
             try:
                 serializer.is_valid(raise_exception=True)
                 otp = models.OTPModel.objects.get(user=user)
-                if not otp.is_active:
-                    if settings.REST_SESSION_LOGIN:
-                        login(request, user)
-                    resp = response.Response()
-                    resp.set_cookie(
-                        key=settings.JWT_AUTH_REFRESH_COOKIE,
-                        value=serializer.validated_data[
-                            settings.JWT_AUTH_REFRESH_COOKIE
-                        ],
-                        httponly=settings.JWT_AUTH_HTTPONLY,
-                        samesite=settings.JWT_AUTH_SAMESITE,
-                        expires=(
-                            timezone.now()
-                            + settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]
-                        ),
-                    )
-                    resp.set_cookie(
-                        key=settings.JWT_AUTH_COOKIE,
-                        value=serializer.validated_data[settings.JWT_AUTH_COOKIE],
-                        httponly=settings.JWT_AUTH_HTTPONLY,
-                        samesite=settings.JWT_AUTH_SAMESITE,
-                        expires=(
-                            timezone.now()
-                            + settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]
-                        ),
-                    )
-                    resp.data = serializer.validated_data
-                    resp.status_code = status.HTTP_200_OK
-                    return resp
-                    # return response.Response(serializer.validated_data, status=status.HTTP_200_OK)
-                else:
-                    key = bytes(settings.SECRET_KEY, "utf-8")
-                    refresh_token = RefreshToken.for_user(user)
+                if otp.is_active:
+                    return self.otp_login(user=user)
+                return self.direct_login(request=request, user=user, serializer=serializer)
 
-                    fer_key = Fernet(key).encrypt(bytes(str(refresh_token), "utf-8"))
-
-                    return response.Response(
-                        {"secret": fer_key}, status=status.HTTP_202_ACCEPTED
-                    )
             except TokenError as e:
                 raise InvalidToken(e.args[0]) from e
         except Exception as e:
@@ -184,7 +189,7 @@ class OTPView(views.APIView):
                 httponly=settings.JWT_AUTH_HTTPONLY,
                 samesite=settings.JWT_AUTH_SAMESITE,
                 expires=(
-                    timezone.now() + settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]
+                        timezone.now() + settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]
                 ),
             )
             resp.set_cookie(
@@ -221,7 +226,7 @@ class MyTokenRefreshView(generics.GenericAPIView):
                 settings.JWT_AUTH_REFRESH_COOKIE: request.COOKIES.get(
                     settings.JWT_AUTH_REFRESH_COOKIE
                 )
-                or request.data.get(settings.JWT_AUTH_REFRESH_COOKIE)
+                                                  or request.data.get(settings.JWT_AUTH_REFRESH_COOKIE)
             }
         )
         try:
@@ -234,7 +239,7 @@ class MyTokenRefreshView(generics.GenericAPIView):
                     httponly=settings.JWT_AUTH_HTTPONLY,
                     samesite=settings.JWT_AUTH_SAMESITE,
                     expires=(
-                        timezone.now() + settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]
+                            timezone.now() + settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]
                     ),
                 )
             resp.set_cookie(
@@ -281,8 +286,8 @@ class QRCreateView(views.APIView):
         if totp.verify(otp):
             user_otp.key = (
                 Fernet(str(settings.SECRET_KEY).encode())
-                .encrypt(str(generated_key).encode("utf-8"))
-                .decode()
+                    .encrypt(str(generated_key).encode("utf-8"))
+                    .decode()
             )
             user_otp.is_active = True
             user_otp.save()
