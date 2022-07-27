@@ -3,8 +3,9 @@ import contextlib
 import jwt
 import pyotp
 from cryptography.fernet import Fernet
+from dj_rest_auth.jwt_auth import set_jwt_cookies, unset_jwt_cookies
 from django.conf import settings
-from django.contrib.auth import authenticate, login, password_validation
+from django.contrib.auth import authenticate, login, logout, password_validation
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from rest_framework import exceptions, generics, permissions, response, status, views
@@ -30,19 +31,24 @@ class MyTokenObtainPairView(TokenObtainPairView):
         if settings.REST_SESSION_LOGIN:
             login(request, user)
         resp = response.Response()
-        resp.set_cookie(
-            key=settings.JWT_AUTH_REFRESH_COOKIE,
-            value=serializer.validated_data[settings.JWT_AUTH_REFRESH_COOKIE],
-            httponly=settings.JWT_AUTH_HTTPONLY,
-            samesite=settings.JWT_AUTH_SAMESITE,
-            expires=(timezone.now() + settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]),
-        )
-        resp.set_cookie(
-            key=settings.JWT_AUTH_COOKIE,
-            value=serializer.validated_data[settings.JWT_AUTH_COOKIE],
-            httponly=settings.JWT_AUTH_HTTPONLY,
-            samesite=settings.JWT_AUTH_SAMESITE,
-            expires=(timezone.now() + settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]),
+        # resp.set_cookie(
+        #     key=settings.JWT_AUTH_REFRESH_COOKIE,
+        #     value=serializer.validated_data[settings.JWT_AUTH_REFRESH_COOKIE],
+        #     httponly=settings.JWT_AUTH_HTTPONLY,
+        #     samesite=settings.JWT_AUTH_SAMESITE,
+        #     expires=(timezone.now() + settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]),
+        # )
+        # resp.set_cookie(
+        #     key=settings.JWT_AUTH_COOKIE,
+        #     value=serializer.validated_data[settings.JWT_AUTH_COOKIE],
+        #     httponly=settings.JWT_AUTH_HTTPONLY,
+        #     samesite=settings.JWT_AUTH_SAMESITE,
+        #     expires=(timezone.now() + settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]),
+        # )
+        set_jwt_cookies(
+            response=resp,
+            access_token=serializer.validated_data[settings.JWT_AUTH_COOKIE],
+            refresh_token=serializer.validated_data[settings.JWT_AUTH_REFRESH_COOKIE],
         )
         resp.data = serializer.validated_data
         resp.status_code = status.HTTP_200_OK
@@ -110,6 +116,16 @@ class ChangePasswordView(generics.UpdateAPIView):
     model = models.User
     permission_classes = [permissions.IsAuthenticated]
 
+    @staticmethod
+    def logout_on_password_change(request):
+        resp = response.Response()
+        if settings.REST_SESSION_LOGIN:
+            logout(request)
+        # Below code not working
+        for cookie in request.COOKIES:
+            resp.delete_cookie(key=cookie)
+        unset_jwt_cookies(resp)
+
     def get_object(self, queryset=None):
         return self.request.user
 
@@ -122,36 +138,33 @@ class ChangePasswordView(generics.UpdateAPIView):
             if not self.object.check_password(serializer.data.get("old_password")):
                 return response.Response(
                     {"old_password": ["Wrong password."]},
-                    status=status.HTTP_400_BAD_REQUEST,
+                    status=status.HTTP_401_UNAUTHORIZED,
                 )
             # set_password also hashes the password that the user will get
             password = serializer.data.get("password")
             retype_password = serializer.data.get("retype_password")
 
             if password != retype_password:
-                return response.Response(
-                    {"detail": "Passwords do not match"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+                raise exceptions.NotAcceptable(detail="Passwords do not match")
             try:
                 password_validation.validate_password(
                     password=password, user=self.request.user
                 )
                 self.object.set_password(password)
                 self.object.save()
-                responses = {
-                    "status": "success",
-                    "code": status.HTTP_200_OK,
-                    "message": "Password updated successfully",
-                    "data": [],
-                }
 
-                return response.Response(responses)
+                if settings.LOGOUT_ON_PASSWORD_CHANGE:
+                    self.logout_on_password_change(request=request)
+
+                return response.Response(
+                    {"detail": "Password updated successfully"},
+                    status=status.HTTP_200_OK,
+                )
             except ValidationError as e:
                 return response.Response(
-                    {"detail": e}, status=status.HTTP_400_BAD_REQUEST
+                    {"detail": e}, status=status.HTTP_403_FORBIDDEN
                 )
-        return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        raise exceptions.ValidationError(detail=serializer.errors)
 
 
 class OTPView(views.APIView):
@@ -183,22 +196,26 @@ class OTPView(views.APIView):
             if settings.REST_SESSION_LOGIN:
                 login(request, current_user)
             resp = response.Response()
-            resp.set_cookie(
-                key=settings.JWT_AUTH_REFRESH_COOKIE,
-                value=refresh,
-                httponly=settings.JWT_AUTH_HTTPONLY,
-                samesite=settings.JWT_AUTH_SAMESITE,
-                expires=(
-                    timezone.now() + settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]
-                ),
+            # resp.set_cookie(
+            #     key=settings.JWT_AUTH_REFRESH_COOKIE,
+            #     value=refresh,
+            #     httponly=settings.JWT_AUTH_HTTPONLY,
+            #     samesite=settings.JWT_AUTH_SAMESITE,
+            #     expires=(
+            #             timezone.now() + settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]
+            #     ),
+            # )
+            # resp.set_cookie(
+            #     key=settings.JWT_AUTH_COOKIE,
+            #     value=refresh.access_token,
+            #     httponly=settings.JWT_AUTH_HTTPONLY,
+            #     samesite=settings.JWT_AUTH_SAMESITE,
+            #     expires=(timezone.now() + settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]),
+            # )
+            set_jwt_cookies(
+                response=resp, access_token=refresh.access_token, refresh_token=refresh
             )
-            resp.set_cookie(
-                key=settings.JWT_AUTH_COOKIE,
-                value=refresh.access_token,
-                httponly=settings.JWT_AUTH_HTTPONLY,
-                samesite=settings.JWT_AUTH_SAMESITE,
-                expires=(timezone.now() + settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]),
-            )
+
             resp.data = {
                 settings.JWT_AUTH_REFRESH_COOKIE: str(refresh),
                 settings.JWT_AUTH_COOKIE: str(refresh.access_token),

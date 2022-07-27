@@ -169,6 +169,9 @@ ACCOUNT_AUTHENTICATION_METHOD = "email"
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = "none"
 REST_SESSION_LOGIN = False
+LOGOUT_ON_PASSWORD_CHANGE = (
+    True  # Currently Only Supports for Cookie/Session Based Login
+)
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -248,11 +251,11 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"  # change as per your region Ex: 'America/New_York' | 'Europe/Paris' | 'Europe/London' | 'Asia/Dhaka'
+TIME_ZONE = "Asia/Dhaka"  # change as per your region Ex: 'America/New_York' | 'Europe/Paris' | 'Europe/London' | 'Asia/Dhaka'
 
 USE_I18N = True
 
-USE_TZ = True
+USE_TZ = False
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
