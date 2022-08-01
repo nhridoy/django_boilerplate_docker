@@ -118,24 +118,24 @@ class ChangePasswordView(generics.UpdateAPIView):
 
     @staticmethod
     def logout_on_password_change(request):
-        resp = response.Response()
+        resp = response.Response(
+            {"detail": "Password updated successfully"}, status=status.HTTP_200_OK
+        )
         if settings.REST_SESSION_LOGIN:
             logout(request)
-        # Below code not working
-        for cookie in request.COOKIES:
-            resp.delete_cookie(key=cookie)
         unset_jwt_cookies(resp)
+        return resp
 
     def get_object(self, queryset=None):
         return self.request.user
 
     def update(self, request, *args, **kwargs):
-        self.object = self.get_object()
+        obj = self.get_object()
         serializer = self.get_serializer(data=request.data)
 
         if serializer.is_valid():
             # Check old password
-            if not self.object.check_password(serializer.data.get("old_password")):
+            if not obj.check_password(serializer.data.get("old_password")):
                 return response.Response(
                     {"old_password": ["Wrong password."]},
                     status=status.HTTP_401_UNAUTHORIZED,
@@ -150,16 +150,18 @@ class ChangePasswordView(generics.UpdateAPIView):
                 password_validation.validate_password(
                     password=password, user=self.request.user
                 )
-                self.object.set_password(password)
-                self.object.save()
+                obj.set_password(password)
+                obj.save()
 
-                if settings.LOGOUT_ON_PASSWORD_CHANGE:
+                return (
                     self.logout_on_password_change(request=request)
-
-                return response.Response(
-                    {"detail": "Password updated successfully"},
-                    status=status.HTTP_200_OK,
+                    if settings.LOGOUT_ON_PASSWORD_CHANGE
+                    else response.Response(
+                        {"detail": "Password updated successfully"},
+                        status=status.HTTP_200_OK,
+                    )
                 )
+
             except ValidationError as e:
                 return response.Response(
                     {"detail": e}, status=status.HTTP_403_FORBIDDEN

@@ -168,10 +168,8 @@ OLD_PASSWORD_FIELD_ENABLED = True
 ACCOUNT_AUTHENTICATION_METHOD = "email"
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = "none"
-REST_SESSION_LOGIN = False
-LOGOUT_ON_PASSWORD_CHANGE = (
-    True  # Currently Only Supports for Cookie/Session Based Login
-)
+REST_SESSION_LOGIN = False  # Set Session ID and CSRF Token to Cookie
+LOGOUT_ON_PASSWORD_CHANGE = True  # For Cookie Based Login
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
