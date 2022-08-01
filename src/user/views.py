@@ -174,6 +174,40 @@ class OTPView(views.APIView):
     View for Login with OTP
     """
 
+    @staticmethod
+    def otp_login(current_user, request):
+        refresh = RefreshToken.for_user(current_user)
+        refresh["email"] = current_user.email
+        if settings.REST_SESSION_LOGIN:
+            login(request, current_user)
+        resp = response.Response()
+        # resp.set_cookie(
+        #     key=settings.JWT_AUTH_REFRESH_COOKIE,
+        #     value=refresh,
+        #     httponly=settings.JWT_AUTH_HTTPONLY,
+        #     samesite=settings.JWT_AUTH_SAMESITE,
+        #     expires=(
+        #             timezone.now() + settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]
+        #     ),
+        # )
+        # resp.set_cookie(
+        #     key=settings.JWT_AUTH_COOKIE,
+        #     value=refresh.access_token,
+        #     httponly=settings.JWT_AUTH_HTTPONLY,
+        #     samesite=settings.JWT_AUTH_SAMESITE,
+        #     expires=(timezone.now() + settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]),
+        # )
+        set_jwt_cookies(
+            response=resp, access_token=refresh.access_token, refresh_token=refresh
+        )
+
+        resp.data = {
+            settings.JWT_AUTH_REFRESH_COOKIE: str(refresh),
+            settings.JWT_AUTH_COOKIE: str(refresh.access_token),
+        }
+        resp.status_code = status.HTTP_200_OK
+        return resp
+
     def post(self, request, *args, **kwargs):
         key = bytes(settings.SECRET_KEY, "utf-8")
         secret = bytes(self.request.data["secret"], "utf-8")
@@ -193,37 +227,7 @@ class OTPView(views.APIView):
 
         print(totp.now())
         if totp.verify(otp):
-            refresh = RefreshToken.for_user(current_user)
-            refresh["email"] = current_user.email
-            if settings.REST_SESSION_LOGIN:
-                login(request, current_user)
-            resp = response.Response()
-            # resp.set_cookie(
-            #     key=settings.JWT_AUTH_REFRESH_COOKIE,
-            #     value=refresh,
-            #     httponly=settings.JWT_AUTH_HTTPONLY,
-            #     samesite=settings.JWT_AUTH_SAMESITE,
-            #     expires=(
-            #             timezone.now() + settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]
-            #     ),
-            # )
-            # resp.set_cookie(
-            #     key=settings.JWT_AUTH_COOKIE,
-            #     value=refresh.access_token,
-            #     httponly=settings.JWT_AUTH_HTTPONLY,
-            #     samesite=settings.JWT_AUTH_SAMESITE,
-            #     expires=(timezone.now() + settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]),
-            # )
-            set_jwt_cookies(
-                response=resp, access_token=refresh.access_token, refresh_token=refresh
-            )
-
-            resp.data = {
-                settings.JWT_AUTH_REFRESH_COOKIE: str(refresh),
-                settings.JWT_AUTH_COOKIE: str(refresh.access_token),
-            }
-            resp.status_code = status.HTTP_200_OK
-            return resp
+            return self.otp_login(current_user=current_user, request=request)
             # return response.Response({settings.JWT_AUTH_REFRESH_COOKIE: str(refresh), settings.JWT_AUTH_COOKIE: str(refresh.access_token)},
             #                          status=status.HTTP_200_OK)
         else:
