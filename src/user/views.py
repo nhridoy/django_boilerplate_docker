@@ -259,8 +259,8 @@ class MyTokenRefreshView(generics.GenericAPIView):
                 resp.set_cookie(
                     key=settings.JWT_AUTH_REFRESH_COOKIE,
                     value=ser.validated_data[settings.JWT_AUTH_REFRESH_COOKIE],
-                    httponly=settings.JWT_AUTH_HTTPONLY,
-                    samesite=settings.JWT_AUTH_SAMESITE,
+                    httponly=settings.JWT_AUTH_HTTPONLY or True,
+                    samesite=settings.JWT_AUTH_SAMESITE or "Lax",
                     expires=(
                         timezone.now() + settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]
                     ),
@@ -268,8 +268,8 @@ class MyTokenRefreshView(generics.GenericAPIView):
             resp.set_cookie(
                 key=settings.JWT_AUTH_COOKIE,
                 value=ser.validated_data[settings.JWT_AUTH_COOKIE],
-                httponly=settings.JWT_AUTH_HTTPONLY,
-                samesite=settings.JWT_AUTH_SAMESITE,
+                httponly=settings.JWT_AUTH_HTTPONLY or True,
+                samesite=settings.JWT_AUTH_SAMESITE or "Lax",
                 expires=(timezone.now() + settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]),
             )
             resp.data = ser.validated_data
