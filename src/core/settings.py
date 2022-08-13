@@ -13,66 +13,41 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
-import environ
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+TEMPLATE_DIR = BASE_DIR.joinpath("templates")
 STATIC_DIR = BASE_DIR.joinpath("static")
 MEDIA_DIR = BASE_DIR.joinpath("media")
 
-if os.getenv("SECRET_KEY"):
-    ON_PRODUCTION = os.environ.get("ON_PRODUCTION") == "True"
-    DJANGO_SECRET_KEY = os.environ.get("SECRET_KEY")
-    DJANGO_DEBUG = os.environ.get("DEBUG") == "True"
+# Django Configuration
+ON_PRODUCTION = os.getenv("ON_PRODUCTION") == "True"
+DJANGO_SECRET_KEY = os.getenv("SECRET_KEY")
+DJANGO_DEBUG = os.getenv("DEBUG") == "True"
+SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT") == "True"
+DJANGO_ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS").split(",")
+CORS_HOSTS = os.getenv("CORS_HOSTS").split(",")
 
-    # Database configuration
-    DJANGO_DB_ENGINE = os.environ.get("DB_ENGINE")
-    DJANGO_DB_NAME = os.environ.get("DB_NAME")
-    DJANGO_DB_USER = os.environ.get("DB_USER")
-    DJANGO_DB_PASSWORD = os.environ.get("DB_PASSWORD")
-    DJANGO_DB_HOST = os.environ.get("DB_HOST")
-    SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT") == "True"
-    HOSTS = os.environ.get("ALLOWED_HOSTS").split(",")
-    CORS_HOSTS = os.environ.get("CORS_HOSTS").split(",")
+# Database configuration
+DJANGO_DB_ENGINE = os.getenv("DB_ENGINE")
+DJANGO_DB_NAME = os.getenv("DB_NAME")
+DJANGO_DB_USER = os.getenv("DB_USER")
+DJANGO_DB_PASSWORD = os.getenv("DB_PASSWORD")
+DJANGO_DB_HOST = os.getenv("DB_HOST")
 
-    # Email configuration
-    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-    EMAIL_HOST = os.environ.get("EMAIL_HOST")
-    EMAIL_PORT = os.environ.get("EMAIL_PORT")
-    EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
-    EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
-    EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS") == "True"
-    # EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL') == 'True'
-    DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL")
-else:
-    env = environ.Env(DEBUG=(bool, False))
+# Email configuration
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = os.getenv("EMAIL_HOST")
+EMAIL_PORT = os.getenv("EMAIL_PORT")
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS") == "True"
+# EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL') == 'True'
+DEFAULT_FROM_EMAIL = "Organization Name <demo@domain.com>"
 
-    environ.Env.read_env()
-    environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
-
-    ON_PRODUCTION = env("ON_PRODUCTION") == "True"
-    DJANGO_SECRET_KEY = env("SECRET_KEY")
-    DJANGO_DEBUG = env("DEBUG") == "True"
-
-    # Database configuration
-    DJANGO_DB_ENGINE = env("DB_ENGINE")
-    DJANGO_DB_NAME = env("DB_NAME")
-    DJANGO_DB_USER = env("DB_USER")
-    DJANGO_DB_PASSWORD = env("DB_PASSWORD")
-    DJANGO_DB_HOST = env("DB_HOST")
-    SECURE_SSL_REDIRECT = env("SECURE_SSL_REDIRECT")
-    HOSTS = env("ALLOWED_HOSTS").split(",")
-    CORS_HOSTS = env("CORS_HOSTS").split(",")
-
-    # Email configuration
-    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-    EMAIL_HOST = env("EMAIL_HOST")
-    EMAIL_PORT = env("EMAIL_PORT")
-    EMAIL_HOST_USER = env("EMAIL_HOST_USER")
-    EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
-    EMAIL_USE_TLS = env("EMAIL_USE_TLS") == "True"
-    # EMAIL_USE_SSL = env('EMAIL_USE_SSL') == 'True'
-    DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
@@ -83,7 +58,7 @@ SECRET_KEY = DJANGO_SECRET_KEY
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = DJANGO_DEBUG
 
-ALLOWED_HOSTS = HOSTS
+ALLOWED_HOSTS = DJANGO_ALLOWED_HOSTS
 
 # Application definition
 
@@ -102,6 +77,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "rest_framework_simplejwt",
     "django_cleanup.apps.CleanupConfig",
+    "django_crontab",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
@@ -249,7 +225,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "Asia/Dhaka"  # change as per your region Ex: 'America/New_York' | 'Europe/Paris' | 'Europe/London' | 'Asia/Dhaka'
+# change as per your region Ex: 'America/New_York' | 'Europe/Paris' | 'Europe/London' | 'Asia/Dhaka'
+TIME_ZONE = "Asia/Dhaka"
 
 USE_I18N = True
 
@@ -280,3 +257,5 @@ CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1:8000"]
 SITE_ID = 1
+
+CRONJOBS = []
