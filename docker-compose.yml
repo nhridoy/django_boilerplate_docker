@@ -32,6 +32,7 @@ services:
       - "8000:8000"
     volumes:
       - oxygen_django:/app
+      - ./.env:/app/.env:ro
     networks:
       - oxygen_django
     env_file: .env
