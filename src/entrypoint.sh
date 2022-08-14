@@ -1,4 +1,6 @@
 #!/bin/sh
+# Save this file with LF format instead of CRLF.
+# If you are using VS Code you can easily do that at the bottom right corner of the window
 
 # Start Cron Service
 sudo service cron start
