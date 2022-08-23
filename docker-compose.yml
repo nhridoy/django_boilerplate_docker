@@ -23,7 +23,7 @@ services:
   #           retries: 10
   oxygen_django:
     container_name: oxygen_django
-    image: oxygen_django
+    image: oxygen_django:latest
     restart: unless-stopped
     # depends_on:
     #   postgres:
