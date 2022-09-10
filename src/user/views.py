@@ -174,6 +174,9 @@ class OTPView(views.APIView):
     View for Login with OTP
     """
 
+    permission_classes = []
+    authentication_classes = []
+
     @staticmethod
     def otp_login(current_user, request):
         refresh = RefreshToken.for_user(current_user)
