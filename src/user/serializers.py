@@ -103,11 +103,8 @@ class LoginSerializer(serializers.Serializer):
 
     def get_auth_user_using_orm(self, username, email, password):
         if email:
-            try:
+            with contextlib.suppress(models.User.DoesNotExist):
                 username = models.User.objects.get(email__iexact=email).get_username()
-            except models.User.DoesNotExist:
-                pass
-
         if username:
             return self._validate_username_email(username, "", password)
 
