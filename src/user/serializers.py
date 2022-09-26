@@ -265,3 +265,15 @@ class QRCreateSerializer(serializers.Serializer):
 
     class Meta:
         fields = "__all__"
+
+
+class OTPLoginSerializer(serializers.Serializer):
+    """
+    Serializer to login with OTP
+    """
+
+    secret = serializers.CharField(write_only=True)
+    otp = serializers.IntegerField(write_only=True)
+
+    class Meta:
+        fields = "__all__"

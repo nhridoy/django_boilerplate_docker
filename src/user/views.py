@@ -175,10 +175,14 @@ class ChangePasswordView(generics.UpdateAPIView):
         raise exceptions.ValidationError(detail=serializer.errors)
 
 
-class OTPView(views.APIView):
+class OTPLoginView(views.APIView):
     """
     View for Login with OTP
     """
+
+    authentication_classes = []
+    permission_classes = []
+    serializer_class = serializers.OTPLoginSerializer
 
     @staticmethod
     def otp_login(current_user, request):
@@ -215,9 +219,11 @@ class OTPView(views.APIView):
         return resp
 
     def post(self, request, *args, **kwargs):
+        ser = self.serializer_class(data=request.data)
+        ser.is_valid(raise_exception=True)
+        secret = bytes(ser.validated_data.get("secret"), "utf-8")
+        otp = ser.validated_data.get("otp")
         key = bytes(settings.SECRET_KEY, "utf-8")
-        secret = bytes(self.request.data["secret"], "utf-8")
-        otp = self.request.data["otp"]
         decrypted = Fernet(key).decrypt(secret).decode("utf-8")
 
         data = jwt.decode(
@@ -363,6 +369,8 @@ class NewUserView(generics.ListCreateAPIView):
 
     serializer_class = serializers.NewUserSerializer
     queryset = models.User.objects.all()
+    permission_classes = []
+    authentication_classes = []
 
     # permission_classes = [apipermissions.IsSuperUser]
 
