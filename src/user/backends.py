@@ -10,7 +10,9 @@ class EmailPhoneUsernameAuthenticationBackend(object):
     def authenticate(request, username=None, password=None):
         try:
             user = User.objects.get(
-                Q(phone_number=username) | Q(email=username) | Q(username=username)
+                Q(user_information__phone_number=username)
+                | Q(email=username)
+                | Q(username=username),
             )
 
         except User.DoesNotExist:
