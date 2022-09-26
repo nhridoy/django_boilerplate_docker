@@ -286,6 +286,21 @@ class MyTokenRefreshView(generics.GenericAPIView):
             raise exceptions.AuthenticationFailed(detail=e) from e
 
 
+class OTPCheckView(views.APIView):
+    """
+    Check if OTP is active for user or not
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        try:
+            user_otp = models.OTPModel.objects.filter(user=self.request.user).first()
+            return response.Response({"detail": user_otp.is_active})
+        except Exception as e:
+            raise exceptions.APIException from e
+
+
 class QRCreateView(views.APIView):
     """
     Get method for QR Create
