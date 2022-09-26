@@ -13,7 +13,8 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from user import apipermissions, models, serializers
+from user import apipermissions, backends, models, serializers
+from user.backends import EmailPhoneUsernameAuthenticationBackend as EoP
 
 
 class MyTokenObtainPairView(TokenObtainPairView):
@@ -69,7 +70,12 @@ class MyTokenObtainPairView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         try:
-            user = models.User.objects.get(email=request.data["email"])
+            user = backends.EmailPhoneUsernameAuthenticationBackend.authenticate(
+                request=request,
+                username=request.data.get("username"),
+                password=request.data.get("password"),
+            )
+            # user = models.User.objects.get(email=request.data["email"])
             try:
                 serializer.is_valid(raise_exception=True)
                 otp = models.OTPModel.objects.get(user=user)

@@ -48,7 +48,6 @@ EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS") == "True"
 # EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL') == 'True'
 DEFAULT_FROM_EMAIL = "Organization Name <demo@domain.com>"
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
@@ -251,6 +250,10 @@ MEDIA_ROOT = "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "user.User"
+AUTHENTICATION_BACKENDS = [
+    "user.backends.EmailPhoneUsernameAuthenticationBackend"
+]  # <-- Untested
+
 CORS_ALLOW_ALL_ORIGINS = True
 # Turn this on if want to specify hosts
 # CORS_ALLOWED_ORIGINS = CORS_HOSTS
