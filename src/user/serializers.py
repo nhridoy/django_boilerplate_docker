@@ -253,3 +253,15 @@ class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(required=True)
     password = serializers.CharField(required=True)
     retype_password = serializers.CharField(required=True)
+
+
+class QRCreateSerializer(serializers.Serializer):
+    """
+    Serializer for QR create view
+    """
+
+    generated_key = serializers.CharField()
+    otp = serializers.IntegerField(write_only=True)
+
+    class Meta:
+        fields = "__all__"

@@ -287,6 +287,7 @@ class QRCreateView(views.APIView):
     """
 
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.QRCreateSerializer
 
     def get(self, request, *args, **kwargs):
         generated_key = pyotp.random_base32()
@@ -300,8 +301,10 @@ class QRCreateView(views.APIView):
         )
 
     def post(self, request, *args, **kwargs):
-        generated_key = self.request.data["generated_key"]
-        otp = self.request.data["otp"]
+        ser = self.serializer_class(data=request.data)
+        ser.is_valid(raise_exception=True)
+        generated_key = ser.validated_data.get("generated_key")
+        otp = ser.validated_data.get("otp")
         current_user = self.request.user
         user_otp = models.OTPModel.objects.get(user=current_user)
 
