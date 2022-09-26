@@ -338,7 +338,7 @@ class QRCreateView(views.APIView):
         user_otp.key = ""
         user_otp.is_active = False
         user_otp.save()
-        return response.Response({"message": "OTP "})
+        return response.Response({"message": "OTP Removed"})
 
 
 class NewUserView(generics.ListCreateAPIView):
