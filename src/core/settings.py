@@ -235,8 +235,14 @@ USE_TZ = False
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
 STATIC_URL = "static/"
-STATIC_ROOT = "static"
+# STATIC_ROOT = "static"
 # STATICFILES_DIRS = [STATIC_DIR]
+if DEBUG:
+    STATICFILES_DIRS = [
+        STATIC_DIR,
+    ]
+else:
+    STATIC_ROOT = STATIC_URL
 STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 WHITENOISE_AUTOREFRESH = True
 
