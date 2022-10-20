@@ -243,6 +243,21 @@ class NewUserSerializer(serializers.ModelSerializer):
         return user
 
 
+class PasswordValidateSerializer(serializers.Serializer):
+    """
+    Serializer for validating password
+    """
+
+    password = serializers.CharField(
+        style={"input_type": "password"},
+        write_only=True,
+        required=True,
+    )
+
+    class Meta:
+        fields = "__all__"
+
+
 class ChangePasswordSerializer(serializers.Serializer):
     """
     Serializer for password change endpoint.

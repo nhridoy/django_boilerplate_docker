@@ -100,11 +100,18 @@ class PasswordValidateView(views.APIView):
     """
 
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.PasswordValidateSerializer
 
     def post(self, request, *args, **kwargs):
         current_user = self.request.user
-        password = self.request.data["password"]
-        if user := authenticate(username=current_user.email, password=password):
+        ser = self.serializer_class(data=self.request.data)
+        ser.is_valid(raise_exception=True)
+
+        if user := backends.EmailPhoneUsernameAuthenticationBackend.authenticate(
+            request=request,
+            username=current_user.email,
+            password=ser.validated_data.get("password"),
+        ):
             return response.Response(
                 {"message": "Password Accepted"}, status=status.HTTP_200_OK
             )
