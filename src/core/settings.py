@@ -105,11 +105,16 @@ REST_FRAMEWORK = {
 # DRF Spectacular for api organised view
 SPECTACULAR_SETTINGS = {
     "TITLE": "Oxygen API",
-    "DESCRIPTION": "Oxygen is django boilerplate with custome User model and authentication system",
-    "VERSION": "1.0.0",
-    "SERVE_INCLUDE_SCHEMA": False,
-    "SERVE_PERMISSIONS": ["rest_framework.permissions.AllowAny"],
-    # OTHER SETTINGS
+    "DESCRIPTION": "Oxygen is django boilerplate with custom User model and authentication system",
+    "VERSION": "0.5.0",
+    # "EXCLUDE_CONTENT_TYPES": ["multipart/form-data"],
+    "PARSER_WHITELIST": [
+        "rest_framework.parsers.JSONParser",
+        "rest_framework.parsers.FormParser",
+        "rest_framework.parsers.MultiPartParser",
+        "rest_framework.parsers.FileUploadParser",
+    ],
+    # 'RENDERER_WHITELIST': [],
 }
 # If you are not using JWT Authentication system please comment this section
 SIMPLE_JWT = {
@@ -267,9 +272,9 @@ MEDIA_ROOT = "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "user.User"
-# AUTHENTICATION_BACKENDS = [
-#     "user.backends.EmailPhoneUsernameAuthenticationBackend"
-# ]  # <-- Untested with dj_rest_auth package
+AUTHENTICATION_BACKENDS = [
+    "user.backends.EmailPhoneUsernameAuthenticationBackend"
+]  # <-- Untested with dj_rest_auth package
 
 CORS_ALLOW_ALL_ORIGINS = True
 # Turn this on if want to specify hosts

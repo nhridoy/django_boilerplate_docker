@@ -69,39 +69,29 @@ class MyTokenObtainPairView(TokenObtainPairView):
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        user = models.User.objects.get(email=request.data["email"])
         try:
+            user = backends.EmailPhoneUsernameAuthenticationBackend.authenticate(
+                request=request,
+                username=request.data.get("username"),
+                password=request.data.get("password"),
+            )
+            # user = models.User.objects.get(email=request.data["email"])
+            try:
+                serializer.is_valid(raise_exception=True)
+                otp = models.OTPModel.objects.get(user=user)
+                if otp.is_active:
+                    return self.otp_login(user=user)
+                return self.direct_login(
+                    request=request, user=user, serializer=serializer
+                )
+
+            except TokenError as e:
+                raise InvalidToken(e.args[0]) from e
+        except Exception as e:
             serializer.is_valid(raise_exception=True)
-            otp = models.OTPModel.objects.get(user=user)
-            if otp.is_active:
-                return self.otp_login(user=user)
-            return self.direct_login(request=request, user=user, serializer=serializer)
-
-        except TokenError as e:
-            raise InvalidToken(e.args[0]) from e
-        # try:
-        #     user = backends.EmailPhoneUsernameAuthenticationBackend.authenticate(
-        #         request=request,
-        #         username=request.data.get("username"),
-        #         password=request.data.get("password"),
-        #     )
-        #     # user = models.User.objects.get(email=request.data["email"])
-        #     try:
-        #         serializer.is_valid(raise_exception=True)
-        #         otp = models.OTPModel.objects.get(user=user)
-        #         if otp.is_active:
-        #             return self.otp_login(user=user)
-        #         return self.direct_login(
-        #             request=request, user=user, serializer=serializer
-        #         )
-
-        #     except TokenError as e:
-        #         raise InvalidToken(e.args[0]) from e
-        # except Exception as e:
-        #     serializer.is_valid(raise_exception=True)
-        #     return response.Response(
-        #         serializer.validated_data, status=status.HTTP_200_OK
-        #     )
+            return response.Response(
+                serializer.validated_data, status=status.HTTP_200_OK
+            )
 
 
 class PasswordValidateView(views.APIView):

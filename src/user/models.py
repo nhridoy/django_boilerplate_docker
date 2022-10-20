@@ -1,50 +1,15 @@
-from django.contrib.auth.models import (
-    AbstractBaseUser,
-    BaseUserManager,
-    PermissionsMixin,
-)
+import uuid
+
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from core.models import BaseModel
+from user.managers import UserManager
 
 # Create your models here.
-
-
-class UserManager(BaseUserManager):
-    """
-    This is the manager for custom user model
-    """
-
-    def create_user(self, username, email, password=None):
-
-        if not username:
-            raise ValueError("Username should not be empty")
-
-        if not email:
-            raise ValueError("Email should not be empty")
-
-        if not password:
-            raise ValueError("Password should not be empty")
-
-        user = self.model(
-            username=username,
-            email=self.normalize_email(email=email),
-        )
-        user.set_password(password)
-        user.save(using=self._db)
-        return user
-
-    def create_superuser(self, username, email, password=None):
-
-        user = self.create_user(username=username, email=email, password=password)
-        user.is_superuser = True
-        user.is_staff = True
-        user.is_active = True
-        user.save(using=self._db)
-        return user
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -52,8 +17,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     Custom User Model Class
     """
 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, verbose_name="ID")
     username = models.CharField(max_length=100, verbose_name="Username", unique=True)
-
     email = models.EmailField(max_length=100, verbose_name="Email", unique=True)
     date_joined = models.DateTimeField(verbose_name="Date Joined", auto_now_add=True)
     last_login = models.DateTimeField(auto_now=True)
@@ -74,8 +39,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         help_text="Designate if the " "user has superuser " "status",
     )
 
-    USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["username"]
+    USERNAME_FIELD = "username"
+    REQUIRED_FIELDS = ["email"]
 
     objects = UserManager()
 
