@@ -25,7 +25,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = serializers.MyTokenObtainPairSerializer
 
     @staticmethod
-    def direct_login(request, user, serializer):
+    def _direct_login(request, user, serializer):
         """
         Method for login without OTP
         """
@@ -56,7 +56,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
         return resp
 
     @staticmethod
-    def otp_login(user):
+    def _otp_login(user):
         """
         Method for returning secret key if OTP is active for user
         """
@@ -68,7 +68,9 @@ class MyTokenObtainPairView(TokenObtainPairView):
         return response.Response({"secret": fer_key}, status=status.HTTP_202_ACCEPTED)
 
     def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
         try:
             user = backends.EmailPhoneUsernameAuthenticationBackend.authenticate(
                 request=request,
@@ -77,18 +79,16 @@ class MyTokenObtainPairView(TokenObtainPairView):
             )
             # user = models.User.objects.get(email=request.data["email"])
             try:
-                serializer.is_valid(raise_exception=True)
-                otp = models.OTPModel.objects.get(user=user)
+                otp = generics.get_object_or_404(models.OTPModel, user=user)
                 if otp.is_active:
-                    return self.otp_login(user=user)
-                return self.direct_login(
+                    return self._otp_login(user=user)
+                return self._direct_login(
                     request=request, user=user, serializer=serializer
                 )
 
             except TokenError as e:
                 raise InvalidToken(e.args[0]) from e
         except Exception as e:
-            serializer.is_valid(raise_exception=True)
             return response.Response(
                 serializer.validated_data, status=status.HTTP_200_OK
             )
@@ -104,13 +104,13 @@ class PasswordValidateView(views.APIView):
 
     def post(self, request, *args, **kwargs):
         current_user = self.request.user
-        ser = self.serializer_class(data=self.request.data)
-        ser.is_valid(raise_exception=True)
+        serializer = self.serializer_class(data=self.request.data)
+        serializer.is_valid(raise_exception=True)
 
         if user := backends.EmailPhoneUsernameAuthenticationBackend.authenticate(
             request=request,
             username=current_user.email,
-            password=ser.validated_data.get("password"),
+            password=serializer.validated_data.get("password"),
         ):
             return response.Response(
                 {"message": "Password Accepted"}, status=status.HTTP_200_OK
@@ -130,7 +130,7 @@ class ChangePasswordView(generics.UpdateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     @staticmethod
-    def logout_on_password_change(request):
+    def _logout_on_password_change(request):
         resp = response.Response(
             {"detail": "Password updated successfully"}, status=status.HTTP_200_OK
         )
@@ -139,47 +139,39 @@ class ChangePasswordView(generics.UpdateAPIView):
         unset_jwt_cookies(resp)
         return resp
 
-    def get_object(self, queryset=None):
-        return self.request.user
+    def _change_password(self, request, user, password):
+        password_validation.validate_password(password=password, user=user)
+        user.set_password(password)
+        user.save()
+        if settings.LOGOUT_ON_PASSWORD_CHANGE:
+            self._logout_on_password_change(request=request)
+        return response.Response(
+            {"detail": "Password updated successfully"},
+            status=status.HTTP_200_OK,
+        )
 
     def update(self, request, *args, **kwargs):
-        obj = self.get_object()
-        serializer = self.get_serializer(data=request.data)
+        user = self.request.user
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-        if serializer.is_valid():
-            # Check old password
-            if not obj.check_password(serializer.data.get("old_password")):
-                return response.Response(
-                    {"old_password": ["Wrong password."]},
-                    status=status.HTTP_401_UNAUTHORIZED,
-                )
-            # set_password also hashes the password that the user will get
-            password = serializer.data.get("password")
-            retype_password = serializer.data.get("retype_password")
+        # Check old password
+        if not user.check_password(serializer.data.get("old_password")):
+            return response.Response(
+                {"old_password": ["Wrong password."]},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+        # set_password also hashes the password that the user will get
+        password = serializer.data.get("password")
+        retype_password = serializer.data.get("retype_password")
 
-            if password != retype_password:
-                raise exceptions.NotAcceptable(detail="Passwords do not match")
-            try:
-                password_validation.validate_password(
-                    password=password, user=self.request.user
-                )
-                obj.set_password(password)
-                obj.save()
+        if password != retype_password:
+            raise exceptions.NotAcceptable(detail="Passwords do not match")
+        try:
+            self._change_password(request=request, user=user, password=password)
 
-                return (
-                    self.logout_on_password_change(request=request)
-                    if settings.LOGOUT_ON_PASSWORD_CHANGE
-                    else response.Response(
-                        {"detail": "Password updated successfully"},
-                        status=status.HTTP_200_OK,
-                    )
-                )
-
-            except ValidationError as e:
-                return response.Response(
-                    {"detail": e}, status=status.HTTP_403_FORBIDDEN
-                )
-        raise exceptions.ValidationError(detail=serializer.errors)
+        except ValidationError as e:
+            return response.Response({"detail": e}, status=status.HTTP_403_FORBIDDEN)
 
 
 class OTPLoginView(views.APIView):
@@ -192,7 +184,7 @@ class OTPLoginView(views.APIView):
     serializer_class = serializers.OTPLoginSerializer
 
     @staticmethod
-    def otp_login(current_user, request):
+    def _otp_login(current_user, request):
         refresh = RefreshToken.for_user(current_user)
         refresh["email"] = current_user.email
         if settings.REST_SESSION_LOGIN:
@@ -226,10 +218,11 @@ class OTPLoginView(views.APIView):
         return resp
 
     def post(self, request, *args, **kwargs):
-        ser = self.serializer_class(data=request.data)
-        ser.is_valid(raise_exception=True)
-        secret = bytes(ser.validated_data.get("secret"), "utf-8")
-        otp = ser.validated_data.get("otp")
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        secret = bytes(serializer.validated_data.get("secret"), "utf-8")
+        otp = serializer.validated_data.get("otp")
         key = bytes(settings.SECRET_KEY, "utf-8")
         decrypted = Fernet(key).decrypt(secret).decode("utf-8")
 
@@ -246,7 +239,7 @@ class OTPLoginView(views.APIView):
 
         print(totp.now())
         if totp.verify(otp):
-            return self.otp_login(current_user=current_user, request=request)
+            return self._otp_login(current_user=current_user, request=request)
             # return response.Response({settings.JWT_AUTH_REFRESH_COOKIE: str(refresh), settings.JWT_AUTH_COOKIE: str(refresh.access_token)},
             #                          status=status.HTTP_200_OK)
         else:
@@ -263,7 +256,7 @@ class MyTokenRefreshView(generics.GenericAPIView):
     serializer_class = serializers.TokenRefreshSerializer
 
     def post(self, request, *args, **kwargs):
-        ser = self.serializer_class(
+        serializer = self.serializer_class(
             data={
                 settings.JWT_AUTH_REFRESH_COOKIE: request.COOKIES.get(
                     settings.JWT_AUTH_REFRESH_COOKIE
@@ -272,12 +265,12 @@ class MyTokenRefreshView(generics.GenericAPIView):
             }
         )
         try:
-            ser.is_valid(raise_exception=True)
+            serializer.is_valid(raise_exception=True)
             resp = response.Response()
             with contextlib.suppress(Exception):
                 resp.set_cookie(
                     key=settings.JWT_AUTH_REFRESH_COOKIE,
-                    value=ser.validated_data[settings.JWT_AUTH_REFRESH_COOKIE],
+                    value=serializer.validated_data[settings.JWT_AUTH_REFRESH_COOKIE],
                     httponly=settings.JWT_AUTH_HTTPONLY or True,
                     samesite=settings.JWT_AUTH_SAMESITE or "Lax",
                     expires=(
@@ -286,12 +279,12 @@ class MyTokenRefreshView(generics.GenericAPIView):
                 )
             resp.set_cookie(
                 key=settings.JWT_AUTH_COOKIE,
-                value=ser.validated_data[settings.JWT_AUTH_COOKIE],
+                value=serializer.validated_data[settings.JWT_AUTH_COOKIE],
                 httponly=settings.JWT_AUTH_HTTPONLY or True,
                 samesite=settings.JWT_AUTH_SAMESITE or "Lax",
                 expires=(timezone.now() + settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]),
             )
-            resp.data = ser.validated_data
+            resp.data = serializer.validated_data
             resp.status_code = status.HTTP_200_OK
             return resp
             # return response.Response(ser.validated_data)
@@ -312,8 +305,8 @@ class OTPCheckView(views.APIView):
             user_otp = generics.get_object_or_404(
                 models.OTPModel, user=self.request.user
             )
-            ser = self.serializer_class(user_otp)
-            return response.Response({"detail": ser.data.get("is_active")})
+            serializer = self.serializer_class(user_otp)
+            return response.Response({"detail": serializer.data.get("is_active")})
         except Exception as e:
             raise exceptions.APIException from e
 
@@ -339,10 +332,10 @@ class QRCreateView(views.APIView):
         )
 
     def post(self, request, *args, **kwargs):
-        ser = self.serializer_class(data=request.data)
-        ser.is_valid(raise_exception=True)
-        generated_key = ser.validated_data.get("generated_key")
-        otp = ser.validated_data.get("otp")
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        generated_key = serializer.validated_data.get("generated_key")
+        otp = serializer.validated_data.get("otp")
         current_user = self.request.user
         user_otp = models.OTPModel.objects.get(user=current_user)
 
@@ -387,10 +380,10 @@ class NewUserView(generics.ListCreateAPIView):
 
     def create(self, request, *args, **kwargs):
         user = request.data
-        ser = self.serializer_class(data=user)
-        ser.is_valid(raise_exception=True)
-        new_user = ser.save()
-        user_data = ser.data
+        serializer = self.serializer_class(data=user)
+        serializer.is_valid(raise_exception=True)
+        new_user = serializer.save()
+        user_data = serializer.data
         tokens = RefreshToken.for_user(new_user)
         refresh = str(tokens)
         access = str(tokens.access_token)
