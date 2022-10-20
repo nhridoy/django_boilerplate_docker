@@ -103,11 +103,8 @@ class LoginSerializer(serializers.Serializer):
 
     def get_auth_user_using_orm(self, username, email, password):
         if email:
-            try:
+            with contextlib.suppress(models.User.DoesNotExist):
                 username = models.User.objects.get(email__iexact=email).get_username()
-            except models.User.DoesNotExist:
-                pass
-
         if username:
             return self._validate_username_email(username, "", password)
 
@@ -256,3 +253,27 @@ class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(required=True)
     password = serializers.CharField(required=True)
     retype_password = serializers.CharField(required=True)
+
+
+class QRCreateSerializer(serializers.Serializer):
+    """
+    Serializer for QR create view
+    """
+
+    generated_key = serializers.CharField()
+    otp = serializers.IntegerField(write_only=True)
+
+    class Meta:
+        fields = "__all__"
+
+
+class OTPLoginSerializer(serializers.Serializer):
+    """
+    Serializer to login with OTP
+    """
+
+    secret = serializers.CharField(write_only=True)
+    otp = serializers.IntegerField(write_only=True)
+
+    class Meta:
+        fields = "__all__"

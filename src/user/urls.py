@@ -9,7 +9,8 @@ from user import views
 
 urlpatterns = [
     path("token/", views.MyTokenObtainPairView.as_view()),
-    path("otp/", views.OTPView.as_view()),
+    path("otp-login/", views.OTPLoginView.as_view()),
+    path("otp-check/", views.OTPCheckView.as_view()),
     path("password-validate/", views.PasswordValidateView.as_view()),
     path("change-password/", views.ChangePasswordView.as_view()),
     path("qr-create/", views.QRCreateView.as_view()),

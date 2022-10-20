@@ -48,7 +48,6 @@ EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS") == "True"
 # EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL') == 'True'
 DEFAULT_FROM_EMAIL = "Organization Name <demo@domain.com>"
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
@@ -236,8 +235,14 @@ USE_TZ = False
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
 STATIC_URL = "static/"
-STATIC_ROOT = "static"
+# STATIC_ROOT = "static"
 # STATICFILES_DIRS = [STATIC_DIR]
+if DEBUG:
+    STATICFILES_DIRS = [
+        STATIC_DIR,
+    ]
+else:
+    STATIC_ROOT = STATIC_URL
 STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 WHITENOISE_AUTOREFRESH = True
 
@@ -251,11 +256,17 @@ MEDIA_ROOT = "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "user.User"
+AUTHENTICATION_BACKENDS = [
+    "user.backends.EmailPhoneUsernameAuthenticationBackend"
+]  # <-- Untested with dj_rest_auth package
+
 CORS_ALLOW_ALL_ORIGINS = True
 # Turn this on if want to specify hosts
 # CORS_ALLOWED_ORIGINS = CORS_HOSTS
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1:8000"]
+# CORS_ALLOWED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS").split(",")
+# CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS").split(",")
 SITE_ID = 1
 
 CRONJOBS = []

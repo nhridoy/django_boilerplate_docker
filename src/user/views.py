@@ -13,7 +13,8 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from user import apipermissions, models, serializers
+from user import apipermissions, backends, models, serializers
+from user.backends import EmailPhoneUsernameAuthenticationBackend as EoP
 
 
 class MyTokenObtainPairView(TokenObtainPairView):
@@ -69,7 +70,12 @@ class MyTokenObtainPairView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         try:
-            user = models.User.objects.get(email=request.data["email"])
+            user = backends.EmailPhoneUsernameAuthenticationBackend.authenticate(
+                request=request,
+                username=request.data.get("username"),
+                password=request.data.get("password"),
+            )
+            # user = models.User.objects.get(email=request.data["email"])
             try:
                 serializer.is_valid(raise_exception=True)
                 otp = models.OTPModel.objects.get(user=user)
@@ -169,13 +175,14 @@ class ChangePasswordView(generics.UpdateAPIView):
         raise exceptions.ValidationError(detail=serializer.errors)
 
 
-class OTPView(views.APIView):
+class OTPLoginView(views.APIView):
     """
     View for Login with OTP
     """
 
-    permission_classes = []
     authentication_classes = []
+    permission_classes = []
+    serializer_class = serializers.OTPLoginSerializer
 
     @staticmethod
     def otp_login(current_user, request):
@@ -212,9 +219,11 @@ class OTPView(views.APIView):
         return resp
 
     def post(self, request, *args, **kwargs):
+        ser = self.serializer_class(data=request.data)
+        ser.is_valid(raise_exception=True)
+        secret = bytes(ser.validated_data.get("secret"), "utf-8")
+        otp = ser.validated_data.get("otp")
         key = bytes(settings.SECRET_KEY, "utf-8")
-        secret = bytes(self.request.data["secret"], "utf-8")
-        otp = self.request.data["otp"]
         decrypted = Fernet(key).decrypt(secret).decode("utf-8")
 
         data = jwt.decode(
@@ -283,6 +292,21 @@ class MyTokenRefreshView(generics.GenericAPIView):
             raise exceptions.AuthenticationFailed(detail=e) from e
 
 
+class OTPCheckView(views.APIView):
+    """
+    Check if OTP is active for user or not
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        try:
+            user_otp = models.OTPModel.objects.filter(user=self.request.user).first()
+            return response.Response({"detail": user_otp.is_active})
+        except Exception as e:
+            raise exceptions.APIException from e
+
+
 class QRCreateView(views.APIView):
     """
     Get method for QR Create
@@ -290,6 +314,7 @@ class QRCreateView(views.APIView):
     """
 
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.QRCreateSerializer
 
     def get(self, request, *args, **kwargs):
         generated_key = pyotp.random_base32()
@@ -303,8 +328,10 @@ class QRCreateView(views.APIView):
         )
 
     def post(self, request, *args, **kwargs):
-        generated_key = self.request.data["generated_key"]
-        otp = self.request.data["otp"]
+        ser = self.serializer_class(data=request.data)
+        ser.is_valid(raise_exception=True)
+        generated_key = ser.validated_data.get("generated_key")
+        otp = ser.validated_data.get("otp")
         current_user = self.request.user
         user_otp = models.OTPModel.objects.get(user=current_user)
 
@@ -332,7 +359,7 @@ class QRCreateView(views.APIView):
         user_otp.key = ""
         user_otp.is_active = False
         user_otp.save()
-        return response.Response({"message": "OTP "})
+        return response.Response({"message": "OTP Removed"})
 
 
 class NewUserView(generics.ListCreateAPIView):
@@ -342,6 +369,8 @@ class NewUserView(generics.ListCreateAPIView):
 
     serializer_class = serializers.NewUserSerializer
     queryset = models.User.objects.all()
+    permission_classes = []
+    authentication_classes = []
 
     # permission_classes = [apipermissions.IsSuperUser]
 
