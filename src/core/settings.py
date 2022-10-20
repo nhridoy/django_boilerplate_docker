@@ -139,8 +139,7 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
 }
 
-REST_AUTH_SERIALIZERS = {
-    "LOGIN_SERIALIZER": "user.serializers.LoginSerializer"}
+REST_AUTH_SERIALIZERS = {"LOGIN_SERIALIZER": "user.serializers.LoginSerializer"}
 
 REST_AUTH_REGISTER_SERIALIZERS = {
     # "REGISTER_SERIALIZER": "user.serializers.RegisterSerializer"
