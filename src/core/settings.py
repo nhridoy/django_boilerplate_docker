@@ -128,7 +128,8 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
 }
 
-REST_AUTH_SERIALIZERS = {"LOGIN_SERIALIZER": "user.serializers.LoginSerializer"}
+REST_AUTH_SERIALIZERS = {
+    "LOGIN_SERIALIZER": "user.serializers.LoginSerializer"}
 
 REST_AUTH_REGISTER_SERIALIZERS = {
     # "REGISTER_SERIALIZER": "user.serializers.RegisterSerializer"
@@ -256,9 +257,9 @@ MEDIA_ROOT = "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "user.User"
-AUTHENTICATION_BACKENDS = [
-    "user.backends.EmailPhoneUsernameAuthenticationBackend"
-]  # <-- Untested with dj_rest_auth package
+# AUTHENTICATION_BACKENDS = [
+#     "user.backends.EmailPhoneUsernameAuthenticationBackend"
+# ]  # <-- Untested with dj_rest_auth package
 
 CORS_ALLOW_ALL_ORIGINS = True
 # Turn this on if want to specify hosts

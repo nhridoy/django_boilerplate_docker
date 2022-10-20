@@ -69,29 +69,41 @@ class MyTokenObtainPairView(TokenObtainPairView):
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
+        user = models.User.objects.get(email=request.data["email"])
         try:
-            user = backends.EmailPhoneUsernameAuthenticationBackend.authenticate(
-                request=request,
-                username=request.data.get("username"),
-                password=request.data.get("password"),
-            )
-            # user = models.User.objects.get(email=request.data["email"])
-            try:
-                serializer.is_valid(raise_exception=True)
-                otp = models.OTPModel.objects.get(user=user)
-                if otp.is_active:
-                    return self.otp_login(user=user)
-                return self.direct_login(
-                    request=request, user=user, serializer=serializer
-                )
-
-            except TokenError as e:
-                raise InvalidToken(e.args[0]) from e
-        except Exception as e:
             serializer.is_valid(raise_exception=True)
-            return response.Response(
-                serializer.validated_data, status=status.HTTP_200_OK
+            otp = models.OTPModel.objects.get(user=user)
+            if otp.is_active:
+                return self.otp_login(user=user)
+            return self.direct_login(
+                request=request, user=user, serializer=serializer
             )
+
+        except TokenError as e:
+            raise InvalidToken(e.args[0]) from e
+        # try:
+        #     user = backends.EmailPhoneUsernameAuthenticationBackend.authenticate(
+        #         request=request,
+        #         username=request.data.get("username"),
+        #         password=request.data.get("password"),
+        #     )
+        #     # user = models.User.objects.get(email=request.data["email"])
+        #     try:
+        #         serializer.is_valid(raise_exception=True)
+        #         otp = models.OTPModel.objects.get(user=user)
+        #         if otp.is_active:
+        #             return self.otp_login(user=user)
+        #         return self.direct_login(
+        #             request=request, user=user, serializer=serializer
+        #         )
+
+        #     except TokenError as e:
+        #         raise InvalidToken(e.args[0]) from e
+        # except Exception as e:
+        #     serializer.is_valid(raise_exception=True)
+        #     return response.Response(
+        #         serializer.validated_data, status=status.HTTP_200_OK
+        #     )
 
 
 class PasswordValidateView(views.APIView):
@@ -232,7 +244,8 @@ class OTPLoginView(views.APIView):
 
         current_user = models.User.objects.get(id=data["user_id"])
         current_user_key = (
-            Fernet(key).decrypt(str(current_user.user_otp.key).encode()).decode()
+            Fernet(key).decrypt(
+                str(current_user.user_otp.key).encode()).decode()
         )
         print(current_user_key)
         totp = pyotp.TOTP(current_user_key)
@@ -274,7 +287,8 @@ class MyTokenRefreshView(generics.GenericAPIView):
                     httponly=settings.JWT_AUTH_HTTPONLY or True,
                     samesite=settings.JWT_AUTH_SAMESITE or "Lax",
                     expires=(
-                        timezone.now() + settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]
+                        timezone.now() +
+                        settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]
                     ),
                 )
             resp.set_cookie(
@@ -282,7 +296,8 @@ class MyTokenRefreshView(generics.GenericAPIView):
                 value=ser.validated_data[settings.JWT_AUTH_COOKIE],
                 httponly=settings.JWT_AUTH_HTTPONLY or True,
                 samesite=settings.JWT_AUTH_SAMESITE or "Lax",
-                expires=(timezone.now() + settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]),
+                expires=(timezone.now() +
+                         settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]),
             )
             resp.data = ser.validated_data
             resp.status_code = status.HTTP_200_OK
@@ -301,7 +316,8 @@ class OTPCheckView(views.APIView):
 
     def get(self, request, *args, **kwargs):
         try:
-            user_otp = models.OTPModel.objects.filter(user=self.request.user).first()
+            user_otp = models.OTPModel.objects.filter(
+                user=self.request.user).first()
             return response.Response({"detail": user_otp.is_active})
         except Exception as e:
             raise exceptions.APIException from e
