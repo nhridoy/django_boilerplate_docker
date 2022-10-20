@@ -292,3 +292,15 @@ class OTPLoginSerializer(serializers.Serializer):
 
     class Meta:
         fields = "__all__"
+
+
+class OTPCheckSerializer(serializers.ModelSerializer):
+    """
+    Serializer for checking if OTP is active or not
+    """
+
+    # detail = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = models.OTPModel
+        fields = ["is_active"]

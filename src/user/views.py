@@ -305,11 +305,15 @@ class OTPCheckView(views.APIView):
     """
 
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.OTPCheckSerializer
 
     def get(self, request, *args, **kwargs):
         try:
-            user_otp = models.OTPModel.objects.filter(user=self.request.user).first()
-            return response.Response({"detail": user_otp.is_active})
+            user_otp = generics.get_object_or_404(
+                models.OTPModel, user=self.request.user
+            )
+            ser = self.serializer_class(user_otp)
+            return response.Response({"detail": ser.data.get("is_active")})
         except Exception as e:
             raise exceptions.APIException from e
 
