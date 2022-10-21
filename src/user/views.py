@@ -122,9 +122,8 @@ class ChangePasswordView(generics.UpdateAPIView):
     An endpoint for changing password.
     """
 
-    serializer_class = serializers.ChangePasswordSerializer
-    model = models.User
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.ChangePasswordSerializer
 
     @staticmethod
     def _logout_on_password_change(request):
@@ -153,14 +152,14 @@ class ChangePasswordView(generics.UpdateAPIView):
         serializer.is_valid(raise_exception=True)
 
         # Check old password
-        if not user.check_password(serializer.data.get("old_password")):
+        if not user.check_password(serializer.validated_data.get("old_password")):
             return response.Response(
                 {"old_password": ["Wrong password."]},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
         # set_password also hashes the password that the user will get
-        password = serializer.data.get("password")
-        retype_password = serializer.data.get("retype_password")
+        password = serializer.validated_data.get("password")
+        retype_password = serializer.validated_data.get("retype_password")
 
         if password != retype_password:
             raise exceptions.NotAcceptable(detail="Passwords do not match")

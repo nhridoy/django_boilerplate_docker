@@ -254,20 +254,27 @@ class PasswordValidateSerializer(serializers.Serializer):
         required=True,
     )
 
-    class Meta:
-        fields = "__all__"
-
 
 class ChangePasswordSerializer(serializers.Serializer):
     """
     Serializer for password change endpoint.
     """
 
-    model = models.User
-
-    old_password = serializers.CharField(required=True)
-    password = serializers.CharField(required=True)
-    retype_password = serializers.CharField(required=True)
+    old_password = serializers.CharField(
+        style={"input_type": "password"},
+        write_only=True,
+        required=True,
+    )
+    password = serializers.CharField(
+        style={"input_type": "password"},
+        write_only=True,
+        required=True,
+    )
+    retype_password = serializers.CharField(
+        style={"input_type": "password"},
+        write_only=True,
+        required=True,
+    )
 
 
 class QRCreateSerializer(serializers.Serializer):
@@ -278,9 +285,6 @@ class QRCreateSerializer(serializers.Serializer):
     generated_key = serializers.CharField()
     otp = serializers.IntegerField(write_only=True)
 
-    class Meta:
-        fields = "__all__"
-
 
 class OTPLoginSerializer(serializers.Serializer):
     """
@@ -289,9 +293,6 @@ class OTPLoginSerializer(serializers.Serializer):
 
     secret = serializers.CharField(write_only=True)
     otp = serializers.IntegerField(write_only=True)
-
-    class Meta:
-        fields = "__all__"
 
 
 class OTPCheckSerializer(serializers.ModelSerializer):
