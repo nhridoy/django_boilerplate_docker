@@ -2,7 +2,6 @@ import contextlib
 
 import jwt
 import pyotp
-from cryptography.fernet import Fernet
 from dj_rest_auth.jwt_auth import set_jwt_cookies, unset_jwt_cookies
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout, password_validation
@@ -13,8 +12,9 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from user import apipermissions, backends, models, serializers
-from user.backends import EmailPhoneUsernameAuthenticationBackend as EoP
+from helper import helper
+from user import apipermissions, models, serializers
+from user.backends import EmailPhoneUsernameAuthenticationBackend as EPUA
 
 
 class MyTokenObtainPairView(TokenObtainPairView):
@@ -60,11 +60,8 @@ class MyTokenObtainPairView(TokenObtainPairView):
         """
         Method for returning secret key if OTP is active for user
         """
-        key = bytes(settings.SECRET_KEY, "utf-8")
         refresh_token = RefreshToken.for_user(user)
-
-        fer_key = Fernet(key).encrypt(bytes(str(refresh_token), "utf-8"))
-
+        fer_key = helper.encode(str(refresh_token))
         return response.Response({"secret": fer_key}, status=status.HTTP_202_ACCEPTED)
 
     def post(self, request, *args, **kwargs):
@@ -72,7 +69,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
         serializer.is_valid(raise_exception=True)
 
         try:
-            user = backends.EmailPhoneUsernameAuthenticationBackend.authenticate(
+            user = EPUA.authenticate(
                 request=request,
                 username=request.data.get("username"),
                 password=request.data.get("password"),
@@ -107,7 +104,7 @@ class PasswordValidateView(views.APIView):
         serializer = self.serializer_class(data=self.request.data)
         serializer.is_valid(raise_exception=True)
 
-        if user := backends.EmailPhoneUsernameAuthenticationBackend.authenticate(
+        if user := EPUA.authenticate(
             request=request,
             username=current_user.email,
             password=serializer.validated_data.get("password"),
@@ -220,23 +217,18 @@ class OTPLoginView(views.APIView):
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        secret = bytes(serializer.validated_data.get("secret"), "utf-8")
+        secret = serializer.validated_data.get("secret")
         otp = serializer.validated_data.get("otp")
-        key = bytes(settings.SECRET_KEY, "utf-8")
-        decrypted = Fernet(key).decrypt(secret).decode("utf-8")
-
+        decrypted = helper.decode(str(secret))
         data = jwt.decode(
-            decrypted, settings.SECRET_KEY, settings.SIMPLE_JWT["ALGORITHM"]
+            jwt=decrypted,
+            key=settings.SECRET_KEY,
+            algorithms=settings.SIMPLE_JWT["ALGORITHM"],
         )
-
         current_user = models.User.objects.get(id=data["user_id"])
-        current_user_key = (
-            Fernet(key).decrypt(str(current_user.user_otp.key).encode()).decode()
-        )
+        current_user_key = helper.decode(str(current_user.user_otp.key))
         print(current_user_key)
         totp = pyotp.TOTP(current_user_key)
-
         print(totp.now())
         if totp.verify(otp):
             return self._otp_login(current_user=current_user, request=request)
@@ -341,11 +333,7 @@ class QRCreateView(views.APIView):
 
         totp = pyotp.TOTP(generated_key)
         if totp.verify(otp):
-            user_otp.key = (
-                Fernet(str(settings.SECRET_KEY).encode())
-                .encrypt(str(generated_key).encode("utf-8"))
-                .decode()
-            )
+            user_otp.key = helper.encode(str(generated_key)).decode()
             user_otp.is_active = True
             user_otp.save()
             return response.Response({"detail": "Accepted"}, status=status.HTTP_200_OK)

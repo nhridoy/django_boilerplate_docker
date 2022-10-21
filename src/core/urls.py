@@ -38,9 +38,9 @@ schema_urlpatterns = [
 # App URL
 app_urlpatterns = [
     path("admin/", admin.site.urls),
-    path("account/", include("user.urls")),
-    path("account/", include("dj_rest_auth.urls")),
-    path("account/registration/", include("dj_rest_auth.registration.urls")),
+    path("auth/", include("user.urls")),
+    path("auth/", include("dj_rest_auth.urls")),
+    path("auth/registration/", include("dj_rest_auth.registration.urls")),
 ]
 
 urlpatterns += schema_urlpatterns
