@@ -20,7 +20,7 @@ jobs:
           python -m pip install --upgrade pip
           # pip install flake8==4.0.1 pycodestyle==2.8.0 pytest==7.1.2 radon isort bandit
 
-          pip install flake8
+          pip install flake8 pycodestyle
           # Flake8 Bugs finder
           pip install flake8-encodings flake8-requirements flake8-secure-coding-standard flake8-warnings
           # Flake8 Clean Code
