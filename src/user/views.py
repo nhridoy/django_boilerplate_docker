@@ -4,7 +4,7 @@ import jwt
 import pyotp
 from dj_rest_auth.jwt_auth import set_jwt_cookies, unset_jwt_cookies
 from django.conf import settings
-from django.contrib.auth import authenticate, login, logout, password_validation
+from django.contrib.auth import login, logout, password_validation
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from rest_framework import exceptions, generics, permissions, response, status, views
@@ -13,7 +13,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from helper import helper
-from user import apipermissions, models, serializers
+from user import models, serializers
 from user.backends import EmailPhoneUsernameAuthenticationBackend as EPUA
 
 

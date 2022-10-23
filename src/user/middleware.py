@@ -1,4 +1,4 @@
-from django.http import HttpResponse
+# from django.http import HttpResponse
 
 # EXCLUDE_FROM_MIDDLEWARE = set('Django_Rest_Framework.views.apiIndexView',
 #                             'Django_Rest_Framework.views.IndexView',
