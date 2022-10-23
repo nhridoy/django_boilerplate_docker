@@ -23,10 +23,10 @@ jobs:
           # pip install flake8 pycodestyle
           # # Flake8 Bugs finder
           # pip install flake8-encodings flake8-requirements flake8-secure-coding-standard flake8-warnings
-          # Flake8 Clean Code
-          pip install flake8-class-attributes-order flake8-commas flake8-comprehensions flake8-datetime-utcnow-plugin flake8-implicit-str-concat flake8-obey-import-goat flake8-return flake8-sql flake8-too-many
-          # # Flake8 Naming
-          # pip install flake8-builtins flake8-functions-names flake8-test-name flake8-variables-names pep8-naming
+          # # Flake8 Clean Code
+          # pip install flake8-class-attributes-order flake8-commas flake8-comprehensions flake8-datetime-utcnow-plugin flake8-implicit-str-concat flake8-obey-import-goat flake8-return flake8-sql flake8-too-many
+          # Flake8 Naming
+          pip install flake8-builtins flake8-functions-names flake8-test-name flake8-variables-names pep8-naming
           # # Flake8 Complexity
           # pip install flake8-annotations-complexity flake8-cognitive-complexity flake8-expression-complexity flake8-functions flake8-length
           # # Flake8 Imports
