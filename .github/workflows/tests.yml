@@ -48,6 +48,8 @@ jobs:
           pip install bandit
 
           pip install -r requirements.txt
+      - name: Pip freeze
+        run: pip freeze
       - name: Copy env
         run: |
           sudo cp .env.examplefordjangolocal src/
