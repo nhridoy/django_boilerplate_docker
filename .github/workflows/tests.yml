@@ -74,7 +74,7 @@ jobs:
         run: |
           cd src
           bandit .
-      - name: Test with pytest
-        run: |
-          cd src
-          pytest
+      # - name: Test with pytest
+      #   run: |
+      #     cd src
+      #     pytest
