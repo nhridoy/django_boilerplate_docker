@@ -37,14 +37,18 @@ class MyTokenObtainPairView(TokenObtainPairView):
         #     value=serializer.validated_data[settings.JWT_AUTH_REFRESH_COOKIE],
         #     httponly=settings.JWT_AUTH_HTTPONLY,
         #     samesite=settings.JWT_AUTH_SAMESITE,
-        #     expires=(timezone.now() + settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]),
+        #     expires=(
+        #        timezone.now() + settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]
+        #   ),
         # )
         # resp.set_cookie(
         #     key=settings.JWT_AUTH_COOKIE,
         #     value=serializer.validated_data[settings.JWT_AUTH_COOKIE],
         #     httponly=settings.JWT_AUTH_HTTPONLY,
         #     samesite=settings.JWT_AUTH_SAMESITE,
-        #     expires=(timezone.now() + settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]),
+        #     expires=(
+        #       timezone.now() + settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]
+        #   ),
         # )
         set_jwt_cookies(
             response=resp,
@@ -62,7 +66,10 @@ class MyTokenObtainPairView(TokenObtainPairView):
         """
         refresh_token = RefreshToken.for_user(user)
         fer_key = helper.encode(str(refresh_token))
-        return response.Response({"secret": fer_key}, status=status.HTTP_202_ACCEPTED)
+        return response.Response(
+            {"secret": fer_key},
+            status=status.HTTP_202_ACCEPTED,
+        )
 
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
@@ -85,7 +92,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
 
             except TokenError as e:
                 raise InvalidToken(e.args[0]) from e
-        except Exception as e:
+        except Exception:
             return response.Response(
                 serializer.validated_data, status=status.HTTP_200_OK
             )
@@ -104,7 +111,7 @@ class PasswordValidateView(views.APIView):
         serializer = self.serializer_class(data=self.request.data)
         serializer.is_valid(raise_exception=True)
 
-        if user := EPUA.authenticate(
+        if EPUA.authenticate(
             request=request,
             username=current_user.email,
             password=serializer.validated_data.get("password"),
@@ -113,7 +120,8 @@ class PasswordValidateView(views.APIView):
                 {"message": "Password Accepted"}, status=status.HTTP_200_OK
             )
         return response.Response(
-            {"message": "Wrong Password"}, status=status.HTTP_406_NOT_ACCEPTABLE
+            {"message": "Wrong Password"},
+            status=status.HTTP_406_NOT_ACCEPTABLE,
         )
 
 
@@ -128,7 +136,8 @@ class ChangePasswordView(generics.UpdateAPIView):
     @staticmethod
     def _logout_on_password_change(request):
         resp = response.Response(
-            {"detail": "Password updated successfully"}, status=status.HTTP_200_OK
+            {"detail": "Password updated successfully"},
+            status=status.HTTP_200_OK,
         )
         if settings.REST_SESSION_LOGIN:
             logout(request)
@@ -152,7 +161,8 @@ class ChangePasswordView(generics.UpdateAPIView):
         serializer.is_valid(raise_exception=True)
 
         # Check old password
-        if not user.check_password(serializer.validated_data.get("old_password")):
+        old_password = serializer.validated_data.get("old_password")
+        if not user.check_password(old_password):
             return response.Response(
                 {"old_password": ["Wrong password."]},
                 status=status.HTTP_401_UNAUTHORIZED,
@@ -164,10 +174,17 @@ class ChangePasswordView(generics.UpdateAPIView):
         if password != retype_password:
             raise exceptions.NotAcceptable(detail="Passwords do not match")
         try:
-            self._change_password(request=request, user=user, password=password)
+            self._change_password(
+                request=request,
+                user=user,
+                password=password,
+            )
 
         except ValidationError as e:
-            return response.Response({"detail": e}, status=status.HTTP_403_FORBIDDEN)
+            return response.Response(
+                {"detail": e},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
 
 class OTPLoginView(views.APIView):
@@ -192,7 +209,7 @@ class OTPLoginView(views.APIView):
         #     httponly=settings.JWT_AUTH_HTTPONLY,
         #     samesite=settings.JWT_AUTH_SAMESITE,
         #     expires=(
-        #             timezone.now() + settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]
+        #       timezone.now() + settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]
         #     ),
         # )
         # resp.set_cookie(
@@ -200,10 +217,14 @@ class OTPLoginView(views.APIView):
         #     value=refresh.access_token,
         #     httponly=settings.JWT_AUTH_HTTPONLY,
         #     samesite=settings.JWT_AUTH_SAMESITE,
-        #     expires=(timezone.now() + settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]),
+        #     expires=(
+        #       timezone.now() + settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]
+        #   ),
         # )
         set_jwt_cookies(
-            response=resp, access_token=refresh.access_token, refresh_token=refresh
+            response=resp,
+            access_token=refresh.access_token,
+            refresh_token=refresh,
         )
 
         resp.data = {
@@ -231,11 +252,17 @@ class OTPLoginView(views.APIView):
         print(totp.now())
         if totp.verify(otp):
             return self._otp_login(current_user=current_user, request=request)
-            # return response.Response({settings.JWT_AUTH_REFRESH_COOKIE: str(refresh), settings.JWT_AUTH_COOKIE: str(refresh.access_token)},
-            #                          status=status.HTTP_200_OK)
+            # return response.Response(
+            #     {
+            #         settings.JWT_AUTH_REFRESH_COOKIE: str(refresh),
+            #         settings.JWT_AUTH_COOKIE: str(refresh.access_token),
+            #     },
+            #     status=status.HTTP_200_OK,
+            # )
         else:
             return response.Response(
-                {"detail": "Wrong Token"}, status=status.HTTP_406_NOT_ACCEPTABLE
+                {"detail": "Wrong Token"},
+                status=status.HTTP_406_NOT_ACCEPTABLE,
             )
 
 
@@ -297,7 +324,11 @@ class OTPCheckView(views.APIView):
                 models.OTPModel, user=self.request.user
             )
             serializer = self.serializer_class(user_otp)
-            return response.Response({"detail": serializer.data.get("is_active")})
+            return response.Response(
+                {
+                    "detail": serializer.data.get("is_active"),
+                }
+            )
         except Exception as e:
             raise exceptions.APIException from e
 
@@ -310,6 +341,11 @@ class QRCreateView(views.APIView):
 
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = serializers.QRCreateSerializer
+
+    def _clear_user_otp(self, user_otp):
+        user_otp.key = ""
+        user_otp.is_active = False
+        user_otp.save()
 
     def get(self, request, *args, **kwargs):
         generated_key = pyotp.random_base32()
@@ -335,21 +371,23 @@ class QRCreateView(views.APIView):
             user_otp.key = helper.encode(str(generated_key)).decode()
             user_otp.is_active = True
             user_otp.save()
-            return response.Response({"detail": "Accepted"}, status=status.HTTP_200_OK)
+            return response.Response(
+                {"detail": "Accepted"},
+                status=status.HTTP_200_OK,
+            )
         else:
             print(totp.now())
-            user_otp.key = ""
-            user_otp.is_active = False
-            user_otp.save()
+            self._clear_user_otp(user_otp)
             raise exceptions.NotAcceptable()
-            # return response.Response({'detail': 'Not Accepted'}, status=status.HTTP_406_NOT_ACCEPTABLE)
+            # return response.Response(
+            #     {"detail": "Not Accepted"},
+            #     status=status.HTTP_406_NOT_ACCEPTABLE,
+            # )
 
     def delete(self, request, *args, **kwargs):
         current_user = self.request.user
         user_otp = models.OTPModel.objects.get(user=current_user)
-        user_otp.key = ""
-        user_otp.is_active = False
-        user_otp.save()
+        self._clear_user_otp(user_otp)
         return response.Response({"message": "OTP Removed"})
 
 
@@ -376,6 +414,10 @@ class NewUserView(generics.ListCreateAPIView):
         access = str(tokens.access_token)
 
         return response.Response(
-            {"user_data": user_data, "refresh_token": refresh, "access_token": access},
+            {
+                "user_data": user_data,
+                "refresh_token": refresh,
+                "access_token": access,
+            },
             status=status.HTTP_201_CREATED,
         )

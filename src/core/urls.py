@@ -25,14 +25,28 @@ from drf_spectacular.views import (
 )
 
 urlpatterns = [
-    re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
+    re_path(
+        r"^media/(?P<path>.*)$",
+        serve,
+        {
+            "document_root": settings.MEDIA_ROOT,
+        },
+    ),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # DRF Spectacular urls
 schema_urlpatterns = [
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
-    path("doc/", SpectacularSwaggerView.as_view(url_name="schema"), name="doc"),
-    path("redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
+    path(
+        "doc/",
+        SpectacularSwaggerView.as_view(url_name="schema"),
+        name="doc",
+    ),
+    path(
+        "redoc/",
+        SpectacularRedocView.as_view(url_name="schema"),
+        name="redoc",
+    ),
 ]
 
 # App URL
