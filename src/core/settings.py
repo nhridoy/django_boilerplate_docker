@@ -105,7 +105,8 @@ REST_FRAMEWORK = {
 # DRF Spectacular for api organised view
 SPECTACULAR_SETTINGS = {
     "TITLE": "Oxygen API",
-    "DESCRIPTION": "Oxygen is django boilerplate with custom User model and authentication system",
+    "DESCRIPTION": "Oxygen is django boilerplate with \
+    custom User model and authentication system",
     "VERSION": "0.5.0",
     # "EXCLUDE_CONTENT_TYPES": ["multipart/form-data"],
     "PARSER_WHITELIST": [
@@ -144,7 +145,9 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
 }
 
-REST_AUTH_SERIALIZERS = {"LOGIN_SERIALIZER": "user.serializers.LoginSerializer"}
+REST_AUTH_SERIALIZERS = {
+    "LOGIN_SERIALIZER": "user.serializers.LoginSerializer",
+}
 
 REST_AUTH_REGISTER_SERIALIZERS = {
     # "REGISTER_SERIALIZER": "user.serializers.RegisterSerializer"
@@ -240,7 +243,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-# change as per your region Ex: 'America/New_York' | 'Europe/Paris' | 'Europe/London' | 'Asia/Dhaka'
+# change as per your region Ex: 'America/New_York' | 'Asia/Dhaka'
 TIME_ZONE = "Asia/Dhaka"
 
 USE_I18N = True

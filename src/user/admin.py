@@ -40,7 +40,13 @@ class AdminUser(UserAdmin):
 
 class AdminUserInformation(admin.ModelAdmin):
     ordering = ("-created_at",)
-    search_fields = ("username", "email", "first_name", "last_name", "phone_number")
+    search_fields = (
+        "username",
+        "email",
+        "first_name",
+        "last_name",
+        "phone_number",
+    )
     list_filter = ("is_active", "gender")
     list_display = (
         "user",

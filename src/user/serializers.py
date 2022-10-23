@@ -76,7 +76,9 @@ class LoginSerializer(serializers.Serializer):
         elif username and password:
             user = self.authenticate(username=username, password=password)
         else:
-            msg = _('Must include either "username" or "email" and "password".')
+            msg = _(
+                'Must include either "username" or "email" and "password".',
+            )
             raise exceptions.ValidationError(msg)
 
         return user
@@ -104,7 +106,9 @@ class LoginSerializer(serializers.Serializer):
     def get_auth_user_using_orm(self, username, email, password):
         if email:
             with contextlib.suppress(models.User.DoesNotExist):
-                username = models.User.objects.get(email__iexact=email).get_username()
+                username = models.User.objects.get(
+                    email__iexact=email,
+                ).get_username()
         if username:
             return self._validate_username_email(username, "", password)
 
@@ -120,10 +124,16 @@ class LoginSerializer(serializers.Serializer):
         """
         if "allauth" in settings.INSTALLED_APPS:
 
-            # When `is_active` of a user is set to False, allauth tries to return template html
-            # which does not exist. This is the solution for it. See issue #264.
+            # When `is_active` of a user is set to False,
+            # allauth tries to return template html
+            # which does not exist. This is the solution for it.
+            # See issue #264.
             try:
-                return self.get_auth_user_using_allauth(username, email, password)
+                return self.get_auth_user_using_allauth(
+                    username,
+                    email,
+                    password,
+                )
             except url_exceptions.NoReverseMatch as e:
                 msg = _("Unable to log in with provided credentials.")
                 raise exceptions.ValidationError(msg) from e
@@ -183,7 +193,8 @@ class TokenRefreshSerializer(serializers.Serializer):
             if jwt_settings.api_settings.BLACKLIST_AFTER_ROTATION:
                 with contextlib.suppress(AttributeError):
                     # Attempt to blacklist the given refresh token
-                    # If blacklist app not installed, `blacklist` method will not be present
+                    # If blacklist app not installed, `blacklist` method
+                    # will not be present
                     refresh.blacklist()
             refresh.set_jti()
             refresh.set_exp()
@@ -201,7 +212,11 @@ class NewUserSerializer(serializers.ModelSerializer):
 
     email = serializers.EmailField(
         required=True,
-        validators=[validators.UniqueValidator(queryset=models.User.objects.all())],
+        validators=[
+            validators.UniqueValidator(
+                queryset=models.User.objects.all(),
+            )
+        ],
     )
     username = serializers.CharField(
         required=True, validators=[UnicodeUsernameValidator()]
@@ -226,7 +241,11 @@ class NewUserSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         if attrs["password1"] != attrs["password2"]:
-            raise validators.ValidationError({"password1": "Password Doesn't Match"})
+            raise validators.ValidationError(
+                {
+                    "password1": "Password Doesn't Match",
+                }
+            )
         if models.User.objects.filter(username=attrs["username"]).exists():
             raise validators.ValidationError(
                 {"username": "user with this User ID already exists."}

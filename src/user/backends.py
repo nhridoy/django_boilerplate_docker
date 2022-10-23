@@ -18,7 +18,15 @@ class EmailPhoneUsernameAuthenticationBackend(object):
         except User.DoesNotExist:
             return None
 
-        return user if user and check_password(password, user.password) else None
+        return (
+            user
+            if user
+            and check_password(
+                password,
+                user.password,
+            )
+            else None
+        )
 
     @staticmethod
     def get_user(user_id):

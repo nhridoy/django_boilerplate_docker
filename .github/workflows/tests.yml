@@ -71,11 +71,11 @@ jobs:
       - name: Test with radon
         run: |
           cd src
-          radon
+          radon cc .
       - name: Test with bandit
         run: |
           cd src
-          bandit
+          bandit .
       - name: Test with pytest
         run: |
           cd src
