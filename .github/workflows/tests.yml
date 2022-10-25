@@ -42,8 +42,8 @@ jobs:
           # # Flake8 Formatters
           # pip install flake8-gl-codeclimate
 
-          # # pylama
-          # pip install pylama[all]
+          # pylama
+          pip install pylama[all]
 
           # radon
           pip install radon
