@@ -24,7 +24,6 @@ class AuthorizationMiddleware:
             return None
 
     def __call__(self, request):
-        token = request.COOKIES.get('token')
-        if token:
+        if token := request.COOKIES.get('token'):
             request.META['HTTP_AUTHORIZATION'] = f'Token {token}'
         return self.get_response(request)
