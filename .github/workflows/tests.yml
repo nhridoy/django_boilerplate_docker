@@ -42,8 +42,8 @@ jobs:
           # # Flake8 Formatters
           # pip install flake8-gl-codeclimate
 
-          # pylama
-          pip install pylama[all]
+          # # pylama
+          # pip install pylama[all]
 
           # radon
           pip install radon
@@ -66,10 +66,10 @@ jobs:
           python3 -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
           # # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
           python3 -m flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude=*/migrations/*
-      - name: Test with pylama
-        run: |
-          cd src
-          pylama
+      # - name: Test with pylama
+      #   run: |
+      #     cd src
+      #     pylama
       - name: Test with radon
         run: |
           cd src
