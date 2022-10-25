@@ -69,8 +69,7 @@ class PasswordValidateView(views.APIView):
     def post(self, request, *args, **kwargs):
         current_user = self.request.user
         password = self.request.data['password']
-        user = authenticate(username=current_user.email, password=password)
-        if user:
+        if user := authenticate(username=current_user.email, password=password):
             return response.Response({'message': 'Password Accepted'}, status=status.HTTP_200_OK)
         return response.Response({'message': 'Wrong Password'}, status=status.HTTP_406_NOT_ACCEPTABLE)
 
@@ -84,8 +83,7 @@ class ChangePasswordView(generics.UpdateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self, queryset=None):
-        obj = self.request.user
-        return obj
+        return self.request.user
 
     def update(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -99,23 +97,22 @@ class ChangePasswordView(generics.UpdateAPIView):
             password = serializer.data.get("password")
             retype_password = serializer.data.get("retype_password")
 
-            if password == retype_password:
-                try:
-                    password_validation.validate_password(password=password, user=self.request.user)
-                    self.object.set_password(password)
-                    self.object.save()
-                    responses = {
-                        'status': 'success',
-                        'code': status.HTTP_200_OK,
-                        'message': 'Password updated successfully',
-                        'data': []
-                    }
-
-                    return response.Response(responses)
-                except ValidationError as e:
-                    return response.Response({'detail': e}, status=status.HTTP_400_BAD_REQUEST)
-            else:
+            if password != retype_password:
                 return response.Response({'detail': 'Passwords do not match'}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                password_validation.validate_password(password=password, user=self.request.user)
+                self.object.set_password(password)
+                self.object.save()
+                responses = {
+                    'status': 'success',
+                    'code': status.HTTP_200_OK,
+                    'message': 'Password updated successfully',
+                    'data': []
+                }
+
+                return response.Response(responses)
+            except ValidationError as e:
+                return response.Response({'detail': e}, status=status.HTTP_400_BAD_REQUEST)
         return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 

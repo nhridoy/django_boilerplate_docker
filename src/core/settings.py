@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/4.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.0/ref/settings/
 """
+
 import os
 from datetime import timedelta
 from pathlib import Path
@@ -32,7 +33,6 @@ if os.getenv('SECRET_KEY'):
     SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT') == 'True'
     HOSTS = os.environ.get('ALLOWED_HOSTS').split(',')
     CORS_HOSTS = os.environ.get('CORS_HOSTS').split(',')
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = os.environ.get('EMAIL_HOST')
     EMAIL_PORT = os.environ.get('EMAIL_PORT')
     EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
@@ -59,7 +59,6 @@ else:
     SECURE_SSL_REDIRECT = env('SECURE_SSL_REDIRECT')
     HOSTS = env('ALLOWED_HOSTS').split(',')
     CORS_HOSTS = env('CORS_HOSTS').split(',')
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = env('EMAIL_HOST')
     EMAIL_PORT = env('EMAIL_PORT')
     EMAIL_HOST_USER = env('EMAIL_HOST_USER')
@@ -68,6 +67,7 @@ else:
     # EMAIL_USE_SSL = env('EMAIL_USE_SSL') == 'True'
     DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
 
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
