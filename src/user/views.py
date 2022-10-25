@@ -9,7 +9,14 @@ from dj_rest_auth.jwt_auth import (
 from django.conf import settings
 from django.contrib.auth import login, logout, password_validation
 from django.core.exceptions import ValidationError
-from rest_framework import exceptions, generics, permissions, response, status, views
+from rest_framework import (  # noqa
+    exceptions,
+    generics,
+    permissions,
+    response,
+    status,
+    views,
+)
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
