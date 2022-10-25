@@ -9,6 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import exceptions, serializers, validators
 from rest_framework_simplejwt import settings as jwt_settings
 from rest_framework_simplejwt import tokens
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from user import models
@@ -185,7 +186,10 @@ class TokenRefreshSerializer(serializers.Serializer):
     token_class = tokens.RefreshToken
 
     def validate(self, attrs):
-        refresh = self.token_class(attrs["refresh"])
+        try:
+            refresh = self.token_class(attrs["refresh"])
+        except TokenError as e:
+            raise exceptions.AuthenticationFailed(detail=e) from e
 
         data = {"access": str(refresh.access_token)}
 

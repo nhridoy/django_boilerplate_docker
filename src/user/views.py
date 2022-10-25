@@ -1,13 +1,23 @@
-import contextlib
-
 import jwt
 import pyotp
-from dj_rest_auth.jwt_auth import set_jwt_cookies, unset_jwt_cookies
+from dj_rest_auth.jwt_auth import (
+    set_jwt_cookies,
+    unset_jwt_cookies,
+    set_jwt_refresh_cookie,
+    set_jwt_access_cookie,
+)
 from django.conf import settings
 from django.contrib.auth import login, logout, password_validation
 from django.core.exceptions import ValidationError
-from django.utils import timezone
-from rest_framework import exceptions, generics, permissions, response, status, views
+
+from rest_framework import (
+    exceptions,
+    generics,
+    permissions,
+    response,
+    status,
+    views,
+)
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -52,8 +62,12 @@ class MyTokenObtainPairView(TokenObtainPairView):
         # )
         set_jwt_cookies(
             response=resp,
-            access_token=serializer.validated_data[settings.JWT_AUTH_COOKIE],
-            refresh_token=serializer.validated_data[settings.JWT_AUTH_REFRESH_COOKIE],
+            access_token=serializer.validated_data.get(
+                settings.JWT_AUTH_COOKIE
+            ),  # noqa
+            refresh_token=serializer.validated_data.get(
+                settings.JWT_AUTH_REFRESH_COOKIE
+            ),
         )
         resp.data = serializer.validated_data
         resp.status_code = status.HTTP_200_OK
@@ -273,41 +287,36 @@ class MyTokenRefreshView(generics.GenericAPIView):
 
     serializer_class = serializers.TokenRefreshSerializer
 
-    def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(
-            data={
-                settings.JWT_AUTH_REFRESH_COOKIE: request.COOKIES.get(
-                    settings.JWT_AUTH_REFRESH_COOKIE
-                )
-                or request.data.get(settings.JWT_AUTH_REFRESH_COOKIE)
-            }
-        )
-        try:
-            serializer.is_valid(raise_exception=True)
-            resp = response.Response()
-            with contextlib.suppress(Exception):
-                resp.set_cookie(
-                    key=settings.JWT_AUTH_REFRESH_COOKIE,
-                    value=serializer.validated_data[settings.JWT_AUTH_REFRESH_COOKIE],
-                    httponly=settings.JWT_AUTH_HTTPONLY or True,
-                    samesite=settings.JWT_AUTH_SAMESITE or "Lax",
-                    expires=(
-                        timezone.now() + settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]
-                    ),
-                )
-            resp.set_cookie(
-                key=settings.JWT_AUTH_COOKIE,
-                value=serializer.validated_data[settings.JWT_AUTH_COOKIE],
-                httponly=settings.JWT_AUTH_HTTPONLY or True,
-                samesite=settings.JWT_AUTH_SAMESITE or "Lax",
-                expires=(timezone.now() + settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]),
+    @staticmethod
+    def _set_cookie(resp, serializer):
+        if refresh := serializer.validated_data.get(
+            settings.JWT_AUTH_REFRESH_COOKIE
+        ):  # noqa
+            set_jwt_refresh_cookie(
+                response=resp,
+                refresh_token=refresh,
             )
-            resp.data = serializer.validated_data
-            resp.status_code = status.HTTP_200_OK
-            return resp
-            # return response.Response(ser.validated_data)
-        except Exception as e:
-            raise exceptions.AuthenticationFailed(detail=e) from e
+        set_jwt_access_cookie(
+            response=resp,
+            access_token=serializer.validated_data.get(
+                settings.JWT_AUTH_COOKIE
+            ),  # noqa
+        )
+
+    def post(self, request, *args, **kwargs):
+        refresh = request.COOKIES.get(
+            settings.JWT_AUTH_REFRESH_COOKIE
+        ) or request.data.get(settings.JWT_AUTH_REFRESH_COOKIE)
+
+        serializer = self.serializer_class(
+            data={settings.JWT_AUTH_REFRESH_COOKIE: refresh}
+        )
+        serializer.is_valid(raise_exception=True)
+        resp = response.Response()
+        self._set_cookie(resp=resp, serializer=serializer)
+        resp.data = serializer.validated_data
+        resp.status_code = status.HTTP_200_OK
+        return resp
 
 
 class OTPCheckView(views.APIView):
