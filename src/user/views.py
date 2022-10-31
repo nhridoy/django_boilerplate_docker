@@ -9,10 +9,10 @@ from dj_rest_auth.jwt_auth import (
 from django.conf import settings
 from django.contrib.auth import login, logout, password_validation
 from django.core.exceptions import ValidationError
-from rest_framework import (  # noqa
+from rest_framework import (
     exceptions,
     generics,
-    permissions,
+    permissions,  # noqa
     response,
     status,
     views,
