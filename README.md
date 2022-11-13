@@ -188,7 +188,7 @@ Made with [contrib.rocks](https://contrib.rocks).
 <table>
   <tbody>
     <tr>
-      <td align="center"><a href="https://nhridoy.github.io"><img src="https://avatars.githubusercontent.com/u/75487507?v=4?s=100" width="100px;" alt="Nahidujjaman Hridoy"/><br /><sub><b>Nahidujjaman Hridoy</b></sub></a><br /><a href="#maintenance-nhridoy" title="Maintenance">🚧</a></td>
+      <td align="center"><a href="https://nhridoy.github.io"><img src="https://avatars.githubusercontent.com/u/75487507?v=4?s=100" width="100px;" alt="Nahidujjaman Hridoy"/><br /><sub><b>Nahidujjaman Hridoy</b></sub></a><br /><a href="#maintenance-nhridoy" title="Maintenance">🚧</a> <a href="#ideas-nhridoy" title="Ideas, Planning, & Feedback">🤔</a></td>
     </tr>
   </tbody>
 </table>
