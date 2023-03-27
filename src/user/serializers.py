@@ -124,7 +124,6 @@ class LoginSerializer(serializers.Serializer):
         else `None` will be returned
         """
         if "allauth" in settings.INSTALLED_APPS:
-
             # When `is_active` of a user is set to False,
             # allauth tries to return template html
             # which does not exist. This is the solution for it.
