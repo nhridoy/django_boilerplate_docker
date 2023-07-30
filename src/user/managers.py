@@ -7,7 +7,6 @@ class UserManager(BaseUserManager):
     """
 
     def create_user(self, username, email, password=None):
-
         if not username:
             raise ValueError("Username should not be empty")
 
@@ -26,7 +25,6 @@ class UserManager(BaseUserManager):
         return user
 
     def create_superuser(self, username, email, password=None):
-
         user = self.create_user(
             username=username,
             email=email,

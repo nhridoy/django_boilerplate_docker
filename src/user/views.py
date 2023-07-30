@@ -7,16 +7,9 @@ from dj_rest_auth.jwt_auth import (
     unset_jwt_cookies,
 )
 from django.conf import settings
-from django.contrib.auth import login, logout, password_validation
+from django.contrib.auth import authenticate, login, logout, password_validation
 from django.core.exceptions import ValidationError
-from rest_framework import (  # noqa
-    exceptions,
-    generics,
-    permissions,
-    response,
-    status,
-    views,
-)
+from rest_framework import exceptions, generics, permissions, response, status, views
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -29,6 +22,17 @@ from user.backends import EmailPhoneUsernameAuthenticationBackend as EPUA
 class MyTokenObtainPairView(TokenObtainPairView):
     """
     JWT Custom Token Claims View
+
+    MEHTOD: POST:
+        username/email
+        password
+            if otp enabled:
+                return secret key for next otp step
+            else:
+                if session auth enabled:
+                    login user
+                else:
+                    set cookie with access and refresh token and returns
     """
 
     serializer_class = serializers.MyTokenObtainPairSerializer
@@ -62,10 +66,10 @@ class MyTokenObtainPairView(TokenObtainPairView):
         set_jwt_cookies(
             response=resp,
             access_token=serializer.validated_data.get(
-                settings.JWT_AUTH_COOKIE
-            ),  # noqa
+                settings.JWT_AUTH_COOKIE,
+            ),
             refresh_token=serializer.validated_data.get(
-                settings.JWT_AUTH_REFRESH_COOKIE
+                settings.JWT_AUTH_REFRESH_COOKIE,
             ),
         )
         resp.data = serializer.validated_data
@@ -89,7 +93,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
         serializer.is_valid(raise_exception=True)
 
         try:
-            user = EPUA.authenticate(
+            user = authenticate(
                 request=request,
                 username=request.data.get("username"),
                 password=request.data.get("password"),
