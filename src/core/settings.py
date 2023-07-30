@@ -26,6 +26,7 @@ MEDIA_DIR = BASE_DIR.joinpath("media")
 # Django Configuration
 ON_PRODUCTION = os.getenv("ON_PRODUCTION") == "True"
 DJANGO_SECRET_KEY = os.getenv("SECRET_KEY")
+PROJECT_NAME = os.getenv("PROJECT_NAME")
 DJANGO_DEBUG = os.getenv("DEBUG") == "True"
 SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT") == "True"
 DJANGO_ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS").split(",")

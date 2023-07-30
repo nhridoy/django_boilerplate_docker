@@ -7,16 +7,22 @@ from dj_rest_auth.jwt_auth import (
     unset_jwt_cookies,
 )
 from django.conf import settings
-from django.contrib.auth import authenticate, login, logout, password_validation
+from django.contrib.auth import authenticate, login, logout, password_validation  # noqa
 from django.core.exceptions import ValidationError
-from rest_framework import exceptions, generics, permissions, response, status, views
+from rest_framework import (  # noqa
+    exceptions,
+    generics,
+    permissions,
+    response,
+    status,
+    views,
+)
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from helper import helper
 from user import models, serializers
-from user.backends import EmailPhoneUsernameAuthenticationBackend as EPUA
 
 
 class MyTokenObtainPairView(TokenObtainPairView):
@@ -128,7 +134,7 @@ class PasswordValidateView(views.APIView):
         serializer = self.serializer_class(data=self.request.data)
         serializer.is_valid(raise_exception=True)
 
-        if EPUA.authenticate(
+        if authenticate(
             request=request,
             username=current_user.email,
             password=serializer.validated_data.get("password"),
@@ -207,6 +213,10 @@ class ChangePasswordView(generics.UpdateAPIView):
 class OTPLoginView(views.APIView):
     """
     View for Login with OTP
+
+    Has two parameters
+        secret: secret key found from the login api route
+        otp: code from the authenticator app
     """
 
     authentication_classes = []
@@ -220,24 +230,7 @@ class OTPLoginView(views.APIView):
         if settings.REST_SESSION_LOGIN:
             login(request, current_user)
         resp = response.Response()
-        # resp.set_cookie(
-        #     key=settings.JWT_AUTH_REFRESH_COOKIE,
-        #     value=refresh,
-        #     httponly=settings.JWT_AUTH_HTTPONLY,
-        #     samesite=settings.JWT_AUTH_SAMESITE,
-        #     expires=(
-        #       timezone.now() + settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]
-        #     ),
-        # )
-        # resp.set_cookie(
-        #     key=settings.JWT_AUTH_COOKIE,
-        #     value=refresh.access_token,
-        #     httponly=settings.JWT_AUTH_HTTPONLY,
-        #     samesite=settings.JWT_AUTH_SAMESITE,
-        #     expires=(
-        #       timezone.now() + settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]
-        #   ),
-        # )
+
         set_jwt_cookies(
             response=resp,
             access_token=refresh.access_token,
@@ -269,13 +262,6 @@ class OTPLoginView(views.APIView):
         print(totp.now())
         if totp.verify(otp):
             return self._otp_login(current_user=current_user, request=request)
-            # return response.Response(
-            #     {
-            #         settings.JWT_AUTH_REFRESH_COOKIE: str(refresh),
-            #         settings.JWT_AUTH_COOKIE: str(refresh.access_token),
-            #     },
-            #     status=status.HTTP_200_OK,
-            # )
         else:
             return response.Response(
                 {"detail": "Wrong Token"},
@@ -349,6 +335,7 @@ class QRCreateView(views.APIView):
     """
     Get method for QR Create
     Post method for QR verify
+    Delete method for Disabling OTP
     """
 
     permission_classes = [permissions.IsAuthenticated]
@@ -363,7 +350,7 @@ class QRCreateView(views.APIView):
         generated_key = pyotp.random_base32()
         current_user = self.request.user
         qr_key = pyotp.totp.TOTP(generated_key).provisioning_uri(
-            name=current_user.email, issuer_name="Oxygen Django"
+            name=current_user.email, issuer_name=settings.PROJECT_NAME
         )
         return response.Response(
             {"qr_key": qr_key, "generated_key": generated_key},
@@ -391,10 +378,6 @@ class QRCreateView(views.APIView):
             print(totp.now())
             self._clear_user_otp(user_otp)
             raise exceptions.NotAcceptable()
-            # return response.Response(
-            #     {"detail": "Not Accepted"},
-            #     status=status.HTTP_406_NOT_ACCEPTABLE,
-            # )
 
     def delete(self, request, *args, **kwargs):
         current_user = self.request.user
@@ -416,8 +399,7 @@ class NewUserView(generics.ListCreateAPIView):
     # permission_classes = [apipermissions.IsSuperUser]
 
     def create(self, request, *args, **kwargs):
-        user = request.data
-        serializer = self.serializer_class(data=user)
+        serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         new_user = serializer.save()
         user_data = serializer.data
