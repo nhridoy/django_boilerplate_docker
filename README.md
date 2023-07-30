@@ -1,4 +1,7 @@
 <div align="center">
+<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
+[![All Contributors](https://img.shields.io/badge/all_contributors-1-orange.svg?style=flat-square)](#contributors-)
+<!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 ![Oxygen - An API Ready starter boilerplate with Django and Django Rest Framework](https://img.icons8.com/external-flaticons-lineal-color-flat-icons/256/FA5252/external-oxygen-diving-flaticons-lineal-color-flat-icons-2.png)
 
@@ -176,6 +179,35 @@ If you feel generous, you can donate to this project to this following link.
 </a>
 
 Made with [contrib.rocks](https://contrib.rocks).
+
+## Contributors
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<table>
+  <tbody>
+    <tr>
+      <td align="center"><a href="https://nhridoy.github.io"><img src="https://avatars.githubusercontent.com/u/75487507?v=4?s=100" width="100px;" alt="Nahidujjaman Hridoy"/><br /><sub><b>Nahidujjaman Hridoy</b></sub></a><br /><a href="#maintenance-nhridoy" title="Maintenance">🚧</a> <a href="#ideas-nhridoy" title="Ideas, Planning, & Feedback">🤔</a></td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
+<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
+[![All Contributors](https://img.shields.io/badge/all_contributors-13-orange.svg?style=flat-square)](#contributors)
+<!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 **_Current Donators:_**
 
