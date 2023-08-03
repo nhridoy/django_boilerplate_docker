@@ -267,7 +267,8 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 WHITENOISE_AUTOREFRESH = True
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = "media"
+# MEDIA_ROOT = "media"
+MEDIA_ROOT = BASE_DIR.joinpath("media")
 # DEBUG_PROPAGATE_EXCEPTIONS = True
 
 # Default primary key field type
