@@ -1,16 +1,41 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenVerifyView
-
 from user import views
 
-urlpatterns = [
+urlpatterns = []
+
+login_urlpatterns = [
     path("login/", views.MyTokenObtainPairView.as_view()),
     path("otp-login/", views.OTPLoginView.as_view()),
     path("otp-check/", views.OTPCheckView.as_view()),
-    path("password-validate/", views.PasswordValidateView.as_view()),
-    path("change-password/", views.ChangePasswordView.as_view()),
     path("qr-create/", views.QRCreateView.as_view()),
     path("token/refresh/", views.MyTokenRefreshView.as_view()),
     path("token/verify/", TokenVerifyView.as_view()),
+]
+
+password_urlpatterns = [
+    path("password-validate/", views.PasswordValidateView.as_view()),
+    path("change-password/", views.ChangePasswordView.as_view()),
+    # path("reset-password/", views.ResetPasswordView.as_view()),
+    # path("reset-password-check/", views.ResetPasswordCheckView.as_view()),
+    # path("reset-password-confirm/", views.ResetPasswordConfirmView.as_view()),
+]
+
+signup_urlpatterns = [
     # path('registration/', views.NewUserView.as_view()),
 ]
+
+user_urlpatterns = [
+    # path(
+    #     "user/",
+    #     views.UserProfileView.as_view(),
+    #     name="user-retrieve-update-destroy-api",
+    # ),
+    # path("user-information/", views.UserInformationView.as_view()),
+    # path("user-information/<uuid:user_id>/", views.UserInformationView.as_view()),
+]
+
+urlpatterns += login_urlpatterns
+urlpatterns += password_urlpatterns
+urlpatterns += signup_urlpatterns
+urlpatterns += user_urlpatterns
