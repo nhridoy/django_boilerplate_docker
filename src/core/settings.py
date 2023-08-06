@@ -46,8 +46,8 @@ EMAIL_PORT = os.getenv("EMAIL_PORT")
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS") == "True"
-# EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL') == 'True'
-DEFAULT_FROM_EMAIL = "Organization Name <demo@domain.com>"
+EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL") == "True"
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
@@ -184,7 +184,8 @@ ROOT_URLCONF = "core.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],  # create Template directory and set template directory here as -> 'DIRS': [BASE_DIR/'template'] # noqa
+        "DIRS": [TEMPLATE_DIR],
+        # create Template directory and set template directory here as -> 'DIRS': [BASE_DIR/'template'] # noqa
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [

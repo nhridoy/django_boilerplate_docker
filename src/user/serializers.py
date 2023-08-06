@@ -11,6 +11,7 @@ from rest_framework_simplejwt import settings as jwt_settings
 from rest_framework_simplejwt import tokens
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.db.models import Q
 
 from user import models
 
@@ -327,3 +328,53 @@ class OTPCheckSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.OTPModel
         fields = ["is_active"]
+
+
+# Forget/Reset Password Section
+class ResetPasswordSerializer(serializers.Serializer):
+    """
+    Reset Password Request Serializer
+    """
+
+    username = serializers.CharField(required=True)
+
+    def validate(self, attrs):
+        try:
+            user = models.User.objects.get(
+                Q(email=attrs["username"]) | Q(username=attrs["username"])
+            )
+            return attrs
+        except Exception as e:
+            raise validators.ValidationError(
+                detail="Wrong Username/Email/Phone Number"
+            ) from e
+
+
+class ResetPasswordCheckSerializer(serializers.Serializer):
+    """
+    Serializer for reset-password-check api view
+    """
+
+    token = serializers.CharField(required=True)
+
+    class Meta:
+        fields = "__all__"
+
+
+class ResetPasswordConfirmSerializer(serializers.Serializer):
+    """
+    Reset Password Confirm Serializer
+    """
+
+    token = serializers.CharField(required=True)
+    password = serializers.CharField(
+        style={"input_type": "password"},
+        # write_only=True,
+        required=True,
+        validators=[validate_password],
+    )
+    retype_password = serializers.CharField(
+        style={"input_type": "password"},
+        # write_only=True,
+        required=True,
+    )

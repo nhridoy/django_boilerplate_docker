@@ -16,9 +16,9 @@ login_urlpatterns = [
 password_urlpatterns = [
     path("password-validate/", views.PasswordValidateView.as_view()),
     path("change-password/", views.ChangePasswordView.as_view()),
-    # path("reset-password/", views.ResetPasswordView.as_view()),
-    # path("reset-password-check/", views.ResetPasswordCheckView.as_view()),
-    # path("reset-password-confirm/", views.ResetPasswordConfirmView.as_view()),
+    path("password-reset/", views.ResetPasswordView.as_view()),
+    path("password-reset-check/", views.ResetPasswordCheckView.as_view()),
+    path("password-reset-confirm/", views.ResetPasswordConfirmView.as_view()),
 ]
 
 signup_urlpatterns = [

@@ -6,9 +6,11 @@ from dj_rest_auth.jwt_auth import (
     set_jwt_refresh_cookie,
     unset_jwt_cookies,
 )
+from django.db.models import Q
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout, password_validation  # noqa
 from django.core.exceptions import ValidationError
+from django.template.loader import render_to_string
 from rest_framework import (  # noqa
     exceptions,
     generics,
@@ -22,7 +24,11 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from helper import helper
+from helper.mail import mail_sender
 from user import models, serializers
+
+import random
+import datetime
 
 
 class MyTokenObtainPairView(TokenObtainPairView):
@@ -415,3 +421,154 @@ class NewUserView(generics.ListCreateAPIView):
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+class ResetPasswordView(views.APIView):
+    """
+    View for getting email or sms for password reset
+    post: username: ""
+    """
+
+    serializer_class = serializers.ResetPasswordSerializer
+    authentication_classes = []
+    permission_classes = []
+
+    @staticmethod
+    def generate_link(*args):
+        payload = {
+            "user": str(args[0].id),
+            "exp": datetime.datetime.now(datetime.timezone.utc)
+            + datetime.timedelta(minutes=30),
+            "is_email": True,
+        }
+
+        return f"{args[1]}/auth/reset-password/{helper.encode(helper.create_token(payload=payload)).decode()}/"
+
+    def email_sender_helper(
+        self,
+        user,
+        origin,
+        organization_logo,
+    ):
+        context = {
+            "url": self.generate_link(user, origin),
+            "organization_logo": organization_logo,
+        }
+        mail_sender(
+            subject="Forgot Password",
+            body=f"To reset your password please click this link {self.generate_link(user, origin)}",
+            html_message=render_to_string(template_name="email.html", context=context),
+            # attachment=files,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=(user.email,),
+            # reply_to=("mail@gmail.com",),
+            # cc=("mail1@gmail.com", "mail2@gmail.com"),
+            # bcc=("mail3@gmail.com",),
+            smtp_host=settings.EMAIL_HOST,
+            smtp_port=settings.EMAIL_PORT,
+            auth_user=settings.EMAIL_HOST_USER,
+            auth_password=settings.EMAIL_HOST_PASSWORD,
+            use_ssl=settings.EMAIL_USE_SSL,
+            use_tls=settings.EMAIL_USE_TLS,
+        )
+
+        # task.send_mail_task.delay(
+        #     subject="Reset Password",
+        #     to_mail=user.email,
+        #     from_mail=settings.DEFAULT_FROM_EMAIL,
+        #     html_msg="password-reset-link.html",
+        #     txt_msg="password-reset-link.txt",
+        #     context=context,
+        #     plain_msg=None,
+        # )
+        return response.Response({"detail": "Email Sent", "is_email": True})
+
+    def post(self, *args, **kwargs):
+        try:
+            origin = self.request.headers["origin"]
+        except Exception as e:
+            raise exceptions.PermissionDenied() from e
+        ser = self.serializer_class(data=self.request.data)
+        ser.is_valid(raise_exception=True)
+
+        user = models.User.objects.get(
+            Q(email=ser.validated_data.get("username"))
+            | Q(username=ser.validated_data.get("username"))
+        )
+
+        if user.email:
+            organization_logo = (
+                "https://nexisltd.com/_next/static/media/logo.396c4947.svg"
+            )
+            return self.email_sender_helper(user, origin, organization_logo)
+
+        raise exceptions.PermissionDenied(
+            detail="No Email found!!!",
+        )
+
+
+class ResetPasswordCheckView(views.APIView):
+    """
+    View for checking if the url is expired or not
+    post: token: ""
+    """
+
+    authentication_classes = []
+    permission_classes = []
+    serializer_class = serializers.ResetPasswordCheckSerializer
+
+    def post(self, *args, **kwargs):
+        ser = self.serializer_class(data=self.request.data)
+        ser.is_valid(raise_exception=True)
+
+        try:
+            data = jwt.decode(
+                jwt=helper.decode(str(ser.data.get("token"))),
+                key=settings.SECRET_KEY,
+                algorithms="HS256",
+            )
+
+        except Exception as e:
+            raise exceptions.APIException(detail=e) from e
+        return response.Response({"data": "Accepted"})
+
+
+class ResetPasswordConfirmView(views.APIView):
+    """
+    View for resetting password after checking the token
+    post: token: "", password: ""
+    """
+
+    serializer_class = serializers.ResetPasswordConfirmSerializer
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, *args, **kwargs):
+        ser = self.serializer_class(data=self.request.data)
+        ser.is_valid(raise_exception=True)
+
+        try:
+            return self._change_password(ser)
+        except Exception as e:
+            raise exceptions.APIException(detail=e) from e
+
+    @staticmethod
+    def _change_password(ser):
+        decoded = jwt.decode(
+            jwt=helper.decode(str(ser.data.get("token"))),
+            key=settings.SECRET_KEY,
+            algorithms="HS256",
+        )
+
+        if ser.validated_data.get("password") != ser.validated_data.get(
+            "retype_password"
+        ):
+            raise exceptions.NotAcceptable(detail="Passwords doesn't match!!!")
+
+        user = models.User.objects.get(id=decoded.get("user"))
+        password_validation.validate_password(
+            password=ser.data.get("password"), user=user
+        )
+        user.set_password(ser.data.get("password"))
+        user.save()
+        return response.Response({"detail": "Password Changed Successfully"})
