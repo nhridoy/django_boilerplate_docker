@@ -269,10 +269,7 @@ class OTPLoginView(views.APIView):
         if totp.verify(otp):
             return self._otp_login(current_user=current_user, request=request)
         else:
-            return response.Response(
-                {"detail": "Wrong Token"},
-                status=status.HTTP_406_NOT_ACCEPTABLE,
-            )
+            raise exceptions.NotAcceptable(detail="OTP is Wrong or Expired!!!")
 
 
 class MyTokenRefreshView(generics.GenericAPIView):
@@ -347,7 +344,8 @@ class QRCreateView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = serializers.QRCreateSerializer
 
-    def _clear_user_otp(self, user_otp):
+    @staticmethod
+    def _clear_user_otp(user_otp):
         user_otp.key = ""
         user_otp.is_active = False
         user_otp.save()
@@ -373,7 +371,7 @@ class QRCreateView(views.APIView):
 
         totp = pyotp.TOTP(generated_key)
         if totp.verify(otp):
-            user_otp.key = helper.encode(str(generated_key)).decode()
+            user_otp.key = helper.encode(str(generated_key))
             user_otp.is_active = True
             user_otp.save()
             return response.Response(
@@ -383,7 +381,7 @@ class QRCreateView(views.APIView):
         else:
             print(totp.now())
             self._clear_user_otp(user_otp)
-            raise exceptions.NotAcceptable()
+            raise exceptions.NotAcceptable(detail="OTP is Wrong or Expired!!!")
 
     def delete(self, request, *args, **kwargs):
         current_user = self.request.user
@@ -442,7 +440,7 @@ class ResetPasswordView(views.APIView):
             "is_email": True,
         }
 
-        return f"{args[1]}/auth/reset-password/{helper.encode(helper.create_token(payload=payload)).decode()}/"
+        return f"{args[1]}/auth/reset-password/{helper.encode(helper.create_token(payload=payload))}/"
 
     def email_sender_helper(
         self,
