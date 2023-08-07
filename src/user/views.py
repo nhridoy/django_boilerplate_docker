@@ -1,3 +1,6 @@
+import datetime
+import random
+
 import jwt
 import pyotp
 from dj_rest_auth.jwt_auth import (
@@ -6,10 +9,10 @@ from dj_rest_auth.jwt_auth import (
     set_jwt_refresh_cookie,
     unset_jwt_cookies,
 )
-from django.db.models import Q
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout, password_validation  # noqa
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from django.template.loader import render_to_string
 from rest_framework import (  # noqa
     exceptions,
@@ -26,9 +29,6 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from helper import helper
 from helper.mail import mail_sender
 from user import models, serializers
-
-import random
-import datetime
 
 
 class MyTokenObtainPairView(TokenObtainPairView):

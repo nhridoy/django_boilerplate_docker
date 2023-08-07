@@ -1,11 +1,9 @@
 import os
-from typing import BinaryIO
-from django.core.mail import (
-    get_connection,
-    EmailMultiAlternatives,
-)
 import smtplib
 from email.mime.text import MIMEText
+from typing import BinaryIO
+
+from django.core.mail import EmailMultiAlternatives, get_connection
 
 
 def mail_sender(
