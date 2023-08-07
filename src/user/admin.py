@@ -7,7 +7,10 @@ from user import models
 # Register your models here.
 class AdminUser(UserAdmin):
     ordering = ("-date_joined",)
-    search_fields = ("username", "email", "phone_number")
+    search_fields = (
+        "username",
+        "email",
+    )
     list_filter = (
         "is_active",
         "is_staff",
@@ -40,9 +43,10 @@ class AdminUser(UserAdmin):
 
 class AdminUserInformation(admin.ModelAdmin):
     ordering = ("-created_at",)
+    autocomplete_fields = ("user",)
     search_fields = (
-        "username",
-        "email",
+        "user__username",
+        "user__email",
         "first_name",
         "last_name",
         "phone_number",

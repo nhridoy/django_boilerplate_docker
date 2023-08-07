@@ -23,11 +23,11 @@ def create_token(payload: dict):
     )
 
 
-def encode(data: str):
+def encode(data: str) -> str:
     key = bytes(settings.SECRET_KEY, "utf-8")
-    return Fernet(key).encrypt(bytes(data, "utf-8"))
+    return Fernet(key).encrypt(bytes(data, "utf-8")).decode("utf-8")
 
 
-def decode(token: str):
+def decode(token: str) -> str:
     key = bytes(settings.SECRET_KEY, "utf-8")
     return Fernet(key).decrypt(bytes(token, "utf-8")).decode("utf-8")
