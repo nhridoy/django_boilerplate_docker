@@ -16,9 +16,25 @@ class AdminUser(UserAdmin):
         "is_staff",
         "is_superuser",
     )
-    list_display = ("username", "email", "date_joined", "is_active")
+    list_display = (
+        "username",
+        "email",
+        "date_joined",
+        "is_email_verified",
+        "is_active",
+    )
     fieldsets = (
-        ("Login Info", {"fields": ("username", "email", "password")}),
+        (
+            "Login Info",
+            {
+                "fields": (
+                    "username",
+                    "email",
+                    "password",
+                    "is_email_verified",
+                )
+            },
+        ),
         (
             "Permissions",
             {
@@ -35,7 +51,13 @@ class AdminUser(UserAdmin):
             None,
             {
                 "classes": ("wide",),
-                "fields": ("username", "email", "password1", "password2"),
+                "fields": (
+                    "username",
+                    "email",
+                    "password1",
+                    "password2",
+                    "is_email_verified",
+                ),
             },
         ),
     )
@@ -51,13 +73,13 @@ class AdminUserInformation(admin.ModelAdmin):
         "last_name",
         "phone_number",
     )
-    list_filter = ("is_active", "gender")
+    list_filter = ("status", "gender")
     list_display = (
         "user",
         "first_name",
         "last_name",
         "country",
-        "is_active",
+        "status",
         "created_at",
     )
     fieldsets = (
@@ -90,6 +112,10 @@ class AdminUserInformation(admin.ModelAdmin):
     )
 
 
+class AdminOTPModel(admin.ModelAdmin):
+    exclude = ("status",)
+
+
 admin.site.register(models.User, AdminUser)
 admin.site.register(models.UserInformationModel, AdminUserInformation)
-admin.site.register(models.OTPModel)
+admin.site.register(models.OTPModel, AdminOTPModel)

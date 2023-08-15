@@ -83,6 +83,7 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "dj_rest_auth.registration",
     "drf_spectacular",
+    "phonenumber_field",
     # Installed Apps
     "user",
 ]
@@ -110,6 +111,7 @@ SPECTACULAR_SETTINGS = {
     custom User model and authentication system",
     "VERSION": "0.5.0",
     # "EXCLUDE_CONTENT_TYPES": ["multipart/form-data"],
+    "COMPONENT_SPLIT_REQUEST": True,
     "PARSER_WHITELIST": [
         "rest_framework.parsers.JSONParser",
         "rest_framework.parsers.FormParser",
@@ -146,25 +148,24 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
 }
 
-REST_AUTH_SERIALIZERS = {
-    "LOGIN_SERIALIZER": "user.serializers.LoginSerializer",
+REST_AUTH = {
+    "OLD_PASSWORD_FIELD_ENABLED": True,
+    "LOGOUT_ON_PASSWORD_CHANGE": True,
+    "SESSION_LOGIN": False,
+    "USE_JWT": True,
+    "JWT_AUTH_COOKIE": "access",
+    "JWT_AUTH_REFRESH_COOKIE": "refresh",
+    "JWT_AUTH_REFRESH_COOKIE_PATH": "/",
+    "JWT_AUTH_SECURE": False,  # If set to True, the cookie will only be sent through https scheme. Default is False.
+    "JWT_AUTH_HTTPONLY": True,
+    # If set to True, the client-side JavaScript will not be able to access the cookie. Default is True.
+    "JWT_AUTH_SAMESITE": "Lax",
+    "JWT_AUTH_RETURN_EXPIRATION": False,
+    "JWT_AUTH_COOKIE_USE_CSRF": False,
+    "JWT_AUTH_COOKIE_ENFORCE_CSRF_ON_UNAUTHENTICATED": False,
 }
 
-REST_AUTH_REGISTER_SERIALIZERS = {
-    # "REGISTER_SERIALIZER": "user.serializers.RegisterSerializer"
-}
-
-REST_USE_JWT = True
-JWT_AUTH_COOKIE = "access"
-JWT_AUTH_REFRESH_COOKIE = "refresh"
-JWT_AUTH_HTTPONLY = True
-JWT_AUTH_SAMESITE = "Lax"  # "None" | "Lax" | "Strict"
-OLD_PASSWORD_FIELD_ENABLED = True
-ACCOUNT_AUTHENTICATION_METHOD = "email"
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_EMAIL_VERIFICATION = "none"
-REST_SESSION_LOGIN = False  # Set Session ID and CSRF Token to Cookie
-LOGOUT_ON_PASSWORD_CHANGE = True  # For Cookie Based Login
+EMAIL_VERIFICATION_REQUIRED = True
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

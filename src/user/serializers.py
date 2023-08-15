@@ -3,10 +3,11 @@ import contextlib
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
-from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.db import transaction
 from django.db.models import Q
 from django.urls import exceptions as url_exceptions
 from django.utils.translation import gettext_lazy as _
+from phonenumber_field.serializerfields import PhoneNumberField
 from rest_framework import exceptions, serializers, validators
 from rest_framework_simplejwt import settings as jwt_settings
 from rest_framework_simplejwt import tokens
@@ -211,59 +212,145 @@ class TokenRefreshSerializer(serializers.Serializer):
 
 class NewUserSerializer(serializers.ModelSerializer):
     """
-    New User Registration Serializer
+    User Serializer
     """
 
-    email = serializers.EmailField(
-        required=True,
-        validators=[
-            validators.UniqueValidator(
-                queryset=models.User.objects.all(),
-            )
-        ],
-    )
-    username = serializers.CharField(
-        required=True, validators=[UnicodeUsernameValidator()]
-    )
-
-    password1 = serializers.CharField(
+    password = serializers.CharField(
         style={"input_type": "password"},
         write_only=True,
         required=True,
         validators=[validate_password],
     )
-    password2 = serializers.CharField(
+    retype_password = serializers.CharField(
         style={"input_type": "password"},
         write_only=True,
         required=True,
         label="Retype Password",
     )
+    first_name = serializers.CharField(source="user_information.first_name")
+    last_name = serializers.CharField(source="user_information.last_name")
+    phone_number = PhoneNumberField(source="user_information.phone_number")
+    gender = serializers.ChoiceField(
+        source="user_information.gender",
+        choices=models.UserInformationModel.gender_options,
+    )
 
     class Meta:
         model = models.User
-        fields = ["username", "email", "password1", "password2"]
+        fields = (
+            "id",
+            "username",
+            "email",
+            "password",
+            "retype_password",
+            "first_name",
+            "last_name",
+            "phone_number",
+            "gender",
+        )
+        read_only_fields = (
+            "id",
+            "is_email_verified",
+        )
 
     def validate(self, attrs):
-        if attrs["password1"] != attrs["password2"]:
+        if attrs.get("password") != attrs.get("retype_password"):
             raise validators.ValidationError(
                 {
-                    "password1": "Password Doesn't Match",
+                    "password": "Passwords Doesn't Match",
                 }
-            )
-        if models.User.objects.filter(username=attrs["username"]).exists():
-            raise validators.ValidationError(
-                {"username": "user with this User ID already exists."}
             )
         return attrs
 
+    @transaction.atomic
     def create(self, validated_data):
-        user = models.User.objects.create(
-            username=validated_data["username"],
-            email=validated_data["email"],
+        information_user = validated_data.pop("user_information")
+
+        # As usual, create the User
+        validated_data.pop("retype_password")
+        user = models.User.objects.create_user(**validated_data)
+
+        # Then create UserInformation or related object with additional fields
+        models.UserInformationModel.objects.update_or_create(
+            user=user, defaults={**information_user}
         )
-        user.set_password(validated_data["password1"])
-        user.save()
+
         return user
+
+
+class UserSerializer(serializers.ModelSerializer):
+    """
+    User Serializer
+    """
+
+    first_name = serializers.CharField(source="user_information.first_name")
+    last_name = serializers.CharField(source="user_information.last_name")
+    phone_number = PhoneNumberField(source="user_information.phone_number")
+    address_one = serializers.CharField(source="user_information.address_one")
+    address_two = serializers.CharField(source="user_information.address_two")
+    city = serializers.CharField(source="user_information.city")
+    zipcode = serializers.CharField(source="user_information.zipcode")
+    country = serializers.CharField(source="user_information.country")
+    profile_pic = serializers.ImageField(source="user_information.profile_pic")
+    birth_date = serializers.DateField(source="user_information.birth_date")
+    gender = serializers.ChoiceField(
+        source="user_information.gender",
+        choices=models.UserInformationModel.gender_options,
+    )
+
+    class Meta:
+        model = models.User
+        fields = (
+            "id",
+            "username",
+            "email",
+            "is_email_verified",
+            "first_name",
+            "last_name",
+            "phone_number",
+            "address_one",
+            "address_two",
+            "city",
+            "zipcode",
+            "country",
+            "profile_pic",
+            "birth_date",
+            "gender",
+        )
+        read_only_fields = (
+            "id",
+            "username",
+            "email",
+            "is_email_verified",
+        )
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        if information_user := validated_data.pop("user_information", None):
+            # Update the UserInformation fields or related object
+            user_information = instance.user_information
+            for key, value in information_user.items():
+                setattr(user_information, key, value)
+            user_information.save()
+
+        return instance
+
+
+class ResendVerificationEmailSerializer(serializers.Serializer):
+    """
+    New User Registration Serializer
+    """
+
+    username = serializers.CharField()
+
+    def validate_username(self, value):
+        try:
+            self.user = models.User.objects.get(Q(username=value) | Q(email=value))
+        except models.User.DoesNotExist as e:
+            raise validators.ValidationError(
+                detail="Wrong Username/Email/Phone Number"
+            ) from e
+        return value
 
 
 class PasswordValidateSerializer(serializers.Serializer):
@@ -338,16 +425,14 @@ class ResetPasswordSerializer(serializers.Serializer):
 
     username = serializers.CharField(required=True)
 
-    def validate(self, attrs):
+    def validate_username(self, value):
         try:
-            user = models.User.objects.get(
-                Q(email=attrs["username"]) | Q(username=attrs["username"])
-            )
-            return attrs
-        except Exception as e:
+            self.user = models.User.objects.get(Q(email=value) | Q(username=value))
+        except models.User.DoesNotExist as e:
             raise validators.ValidationError(
                 detail="Wrong Username/Email/Phone Number"
             ) from e
+        return value
 
 
 class ResetPasswordCheckSerializer(serializers.Serializer):

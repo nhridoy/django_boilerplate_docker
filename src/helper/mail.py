@@ -1,7 +1,5 @@
-import os
 import smtplib
 from email.mime.text import MIMEText
-from typing import BinaryIO
 
 from django.core.mail import EmailMultiAlternatives, get_connection
 
@@ -11,7 +9,8 @@ def mail_sender(
     subject: str,
     from_email: str,
     body: str,
-    attachment: BinaryIO = None,
+    attachment: bytes = None,
+    attachment_name: str = None,
     cc: tuple | list = None,
     bcc: tuple | list = None,
     reply_to: tuple | list = None,
@@ -55,11 +54,14 @@ def mail_sender(
                 for recipient in recipient_list
             ]
             # Attach the file to the email messages
-            if attachment:
-                filename = os.path.basename(attachment.name)
-                file_content = attachment.read()
+            if attachment and attachment_name:
+                # filename = os.path.basename(attachment.name)
+                # file_content = attachment.read()
                 for email_message in email_messages:
-                    email_message.attach(filename, file_content)
+                    email_message.attach(
+                        filename=attachment_name,
+                        content=attachment,
+                    )
 
             # Open a single connection for all the emails
             connection.open()

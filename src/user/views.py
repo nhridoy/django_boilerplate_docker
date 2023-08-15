@@ -1,19 +1,14 @@
+import contextlib
 import datetime
-import random
+from typing import BinaryIO
 
 import jwt
 import pyotp
-from dj_rest_auth.jwt_auth import (
-    set_jwt_access_cookie,
-    set_jwt_cookies,
-    set_jwt_refresh_cookie,
-    unset_jwt_cookies,
-)
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout, password_validation  # noqa
-from django.core.exceptions import ValidationError
-from django.db.models import Q
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.template.loader import render_to_string
+from jwt import DecodeError
 from rest_framework import (  # noqa
     exceptions,
     generics,
@@ -21,17 +16,179 @@ from rest_framework import (  # noqa
     response,
     status,
     views,
+    viewsets,
 )
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from helper import helper
-from helper.mail import mail_sender
 from user import models, serializers
 
+from .auth import (
+    set_jwt_access_cookie,
+    set_jwt_cookies,
+    set_jwt_refresh_cookie,
+    unset_jwt_cookies,
+)
 
-class MyTokenObtainPairView(TokenObtainPairView):
+# Signup View
+
+
+class NewUserView(viewsets.ModelViewSet):
+    """
+    View for New User Create and resend email
+    """
+
+    queryset = models.User.objects.all()
+    permission_classes = ()
+    authentication_classes = ()
+
+    # permission_classes = [apipermissions.IsSuperUser]
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return serializers.NewUserSerializer
+        elif self.action == "resend_email":
+            return serializers.ResendVerificationEmailSerializer
+
+    @staticmethod
+    def _login(request, user):
+        refresh = RefreshToken.for_user(user)
+        refresh["email"] = user.email
+        if settings.REST_AUTH.get("SESSION_LOGIN", False):
+            login(request, user)
+        resp = response.Response()
+
+        set_jwt_cookies(
+            response=resp,
+            access_token=refresh.access_token,
+            refresh_token=refresh,
+        )
+
+        resp.data = {
+            settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE"): str(refresh),
+            settings.REST_AUTH.get("JWT_AUTH_COOKIE"): str(refresh.access_token),
+        }
+        resp.status_code = status.HTTP_201_CREATED
+        return resp
+
+    @staticmethod
+    def generate_link(*args):
+        payload = {
+            "user": str(args[0].id),
+            "exp": datetime.datetime.now(datetime.timezone.utc)
+            + datetime.timedelta(minutes=30),
+        }
+
+        return f"{args[1]}/auth/verify-email/{helper.encrypt(helper.encode_token(payload=payload))}/"
+
+    def _verification_email(self, user, origin):
+        context = {
+            "url": self.generate_link(user, origin),
+        }
+
+        # TODO Mail sender function called for later
+        # task.send_mail_task.delay(
+        #     subject=helper.encrypt("Verify Email"),
+        #     body=helper.encrypt(
+        #         f"For using MailGrass please verify email by clicking this link {context.get('url')}"
+        #     ),
+        #     html_message=helper.encrypt(
+        #         render_to_string(
+        #             template_name="email_verification.html", context=context
+        #         )
+        #     ),
+        #     from_email=helper.encrypt(settings.DEFAULT_FROM_EMAIL),
+        #     recipient_list=(user.email,),
+        #     smtp_host=helper.encrypt(settings.EMAIL_HOST),
+        #     smtp_port=helper.encrypt(settings.EMAIL_PORT),
+        #     auth_user=helper.encrypt(settings.EMAIL_HOST_USER),
+        #     auth_password=helper.encrypt(settings.EMAIL_HOST_PASSWORD),
+        #     use_ssl=settings.EMAIL_USE_SSL,
+        #     use_tls=settings.EMAIL_USE_TLS,
+        #     already_encrypted=False,
+        # )
+
+        return response.Response(
+            {
+                "detail": "Verification Email Sent",
+                "email_verification_required": True,
+            }
+        )
+
+    def create(self, request, *args, **kwargs):
+        """
+        create method for creating
+        """
+        try:
+            origin = self.request.headers["origin"]
+        except Exception as e:
+            raise exceptions.PermissionDenied() from e
+
+        serializer_class = self.get_serializer_class()
+        serializer = serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        if settings.EMAIL_VERIFICATION_REQUIRED:
+            return self._verification_email(user=user, origin=origin)
+        # Login After Registration
+        return self._login(request=request, user=user)
+
+    def resend_email(self, *args, **kwargs):
+        """
+        resend_mail method for resending verification email
+        """
+        try:
+            origin = self.request.headers["origin"]
+        except Exception as e:
+            raise exceptions.PermissionDenied() from e
+
+        serializer_class = self.get_serializer_class()
+        ser = serializer_class(data=self.request.data)
+        ser.is_valid(raise_exception=True)
+        user = ser.user
+        if user.is_email_verified:
+            raise exceptions.PermissionDenied(detail="Email already verified")
+        if user.email:
+            organization_logo = (
+                "https://nexisltd.com/_next/static/media/logo.396c4947.svg"
+            )
+            return self._verification_email(user=user, origin=origin)
+
+        raise exceptions.PermissionDenied(
+            detail="No Email found!!!",
+        )
+
+    @staticmethod
+    def verify_email(*args, **kwargs):
+        try:
+            data = helper.decode_token(token=helper.decrypt(kwargs.get("token")))
+            try:
+                user = models.User.objects.get(id=data["user"])
+                if user.is_email_verified:
+                    return response.Response(
+                        {
+                            "detail": "Email Already Verified",
+                        }
+                    )
+                user.is_email_verified = True
+                user.save()
+            except (models.User.DoesNotExist, ValidationError) as e:
+                raise exceptions.NotFound(detail=e) from e
+        except (
+            jwt.ExpiredSignatureError,
+            jwt.InvalidTokenError,
+            jwt.DecodeError,
+        ) as e:
+            raise exceptions.ValidationError(detail={"detail": e}) from e
+        return response.Response({"detail": "Email Verification Successful"})
+
+
+# Login Views
+
+
+class LoginView(TokenObtainPairView):
     """
     JWT Custom Token Claims View
 
@@ -54,34 +211,17 @@ class MyTokenObtainPairView(TokenObtainPairView):
         """
         Method for login without OTP
         """
-        if settings.REST_SESSION_LOGIN:
+        if settings.REST_AUTH.get("SESSION_LOGIN", False):
             login(request, user)
         resp = response.Response()
-        # resp.set_cookie(
-        #     key=settings.JWT_AUTH_REFRESH_COOKIE,
-        #     value=serializer.validated_data[settings.JWT_AUTH_REFRESH_COOKIE],
-        #     httponly=settings.JWT_AUTH_HTTPONLY,
-        #     samesite=settings.JWT_AUTH_SAMESITE,
-        #     expires=(
-        #        timezone.now() + settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]
-        #   ),
-        # )
-        # resp.set_cookie(
-        #     key=settings.JWT_AUTH_COOKIE,
-        #     value=serializer.validated_data[settings.JWT_AUTH_COOKIE],
-        #     httponly=settings.JWT_AUTH_HTTPONLY,
-        #     samesite=settings.JWT_AUTH_SAMESITE,
-        #     expires=(
-        #       timezone.now() + settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]
-        #   ),
-        # )
+
         set_jwt_cookies(
             response=resp,
             access_token=serializer.validated_data.get(
-                settings.JWT_AUTH_COOKIE,
+                settings.REST_AUTH.get("JWT_AUTH_COOKIE"),
             ),
             refresh_token=serializer.validated_data.get(
-                settings.JWT_AUTH_REFRESH_COOKIE,
+                settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE"),
             ),
         )
         resp.data = serializer.validated_data
@@ -94,7 +234,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
         Method for returning secret key if OTP is active for user
         """
         refresh_token = RefreshToken.for_user(user)
-        fer_key = helper.encode(str(refresh_token))
+        fer_key = helper.encrypt(str(refresh_token))
         return response.Response(
             {"secret": fer_key},
             status=status.HTTP_202_ACCEPTED,
@@ -104,116 +244,149 @@ class MyTokenObtainPairView(TokenObtainPairView):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        try:
-            user = authenticate(
-                request=request,
-                username=request.data.get("username"),
-                password=request.data.get("password"),
-            )
-            # user = models.User.objects.get(email=request.data["email"])
-            try:
-                otp = generics.get_object_or_404(models.OTPModel, user=user)
-                if otp.is_active:
-                    return self._otp_login(user=user)
-                return self._direct_login(
-                    request=request, user=user, serializer=serializer
-                )
-
-            except TokenError as e:
-                raise InvalidToken(e.args[0]) from e
-        except Exception:
-            return response.Response(
-                serializer.validated_data, status=status.HTTP_200_OK
-            )
-
-
-class PasswordValidateView(views.APIView):
-    """
-    View for validating password
-    """
-
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = serializers.PasswordValidateSerializer
-
-    def post(self, request, *args, **kwargs):
-        current_user = self.request.user
-        serializer = self.serializer_class(data=self.request.data)
-        serializer.is_valid(raise_exception=True)
-
-        if authenticate(
+        user = authenticate(
             request=request,
-            username=current_user.email,
-            password=serializer.validated_data.get("password"),
-        ):
-            return response.Response(
-                {"message": "Password Accepted"}, status=status.HTTP_200_OK
-            )
-        return response.Response(
-            {"message": "Wrong Password"},
-            status=status.HTTP_406_NOT_ACCEPTABLE,
+            username=request.data.get("username"),
+            password=request.data.get("password"),
         )
-
-
-class ChangePasswordView(generics.UpdateAPIView):
-    """
-    An endpoint for changing password.
-    """
-
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = serializers.ChangePasswordSerializer
-
-    @staticmethod
-    def _logout_on_password_change(request):
-        resp = response.Response(
-            {"detail": "Password updated successfully"},
-            status=status.HTTP_200_OK,
-        )
-        if settings.REST_SESSION_LOGIN:
-            logout(request)
-        unset_jwt_cookies(resp)
-        return resp
-
-    def _change_password(self, request, user, password):
-        password_validation.validate_password(password=password, user=user)
-        user.set_password(password)
-        user.save()
-        if settings.LOGOUT_ON_PASSWORD_CHANGE:
-            self._logout_on_password_change(request=request)
-        return response.Response(
-            {"detail": "Password updated successfully"},
-            status=status.HTTP_200_OK,
-        )
-
-    def update(self, request, *args, **kwargs):
-        user = self.request.user
-        serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        # Check old password
-        old_password = serializer.validated_data.get("old_password")
-        if not user.check_password(old_password):
+        if settings.EMAIL_VERIFICATION_REQUIRED and not user.is_email_verified:
             return response.Response(
-                {"old_password": ["Wrong password."]},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-        # set_password also hashes the password that the user will get
-        password = serializer.validated_data.get("password")
-        retype_password = serializer.validated_data.get("retype_password")
-
-        if password != retype_password:
-            raise exceptions.NotAcceptable(detail="Passwords do not match")
-        try:
-            self._change_password(
-                request=request,
-                user=user,
-                password=password,
-            )
-
-        except ValidationError as e:
-            return response.Response(
-                {"detail": e},
+                data={
+                    "detail": "Email not Verified",
+                    "email_verification_required": True,
+                },
                 status=status.HTTP_403_FORBIDDEN,
             )
+
+        try:
+            if user.user_otp.is_active:
+                return self._otp_login(user=user)
+            return self._direct_login(request=request, user=user, serializer=serializer)
+
+        except TokenError as e:
+            raise InvalidToken(e.args[0]) from e
+
+
+class MyTokenRefreshView(generics.GenericAPIView):
+    """
+    View for get new access token for a valid refresh token
+    """
+
+    serializer_class = serializers.TokenRefreshSerializer
+
+    @staticmethod
+    def _set_cookie(resp, serializer):
+        if refresh := serializer.validated_data.get(
+            settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE")
+        ):  # noqa
+            set_jwt_refresh_cookie(
+                response=resp,
+                refresh_token=refresh,
+            )
+        set_jwt_access_cookie(
+            response=resp,
+            access_token=serializer.validated_data.get(
+                settings.REST_AUTH.get("JWT_AUTH_COOKIE")
+            ),  # noqa
+        )
+
+    def post(self, request, *args, **kwargs):
+        refresh = request.COOKIES.get(
+            settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE")
+        ) or request.data.get(settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE"))
+
+        serializer = self.serializer_class(
+            data={settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE"): refresh}
+        )
+        serializer.is_valid(raise_exception=True)
+        resp = response.Response()
+        self._set_cookie(resp=resp, serializer=serializer)
+        resp.data = serializer.validated_data
+        resp.status_code = status.HTTP_200_OK
+        return resp
+
+
+class LogoutView(views.APIView):
+    """
+    Calls Django logout method and delete the Token object
+    assigned to the current User object.
+
+    Accepts/Returns nothing.
+    """
+
+    permission_classes = (permissions.AllowAny,)
+    throttle_scope = "dj_rest_auth"
+
+    def get(self, request, *args, **kwargs):
+        if getattr(settings, "ACCOUNT_LOGOUT_ON_GET", False):
+            resp = self._logout(request)
+        else:
+            resp = self.http_method_not_allowed(request, *args, **kwargs)
+
+        return self.finalize_response(request, resp, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        return self._logout(request)
+
+    @staticmethod
+    def _logout(request):
+        with contextlib.suppress(AttributeError, ObjectDoesNotExist):
+            request.user.auth_token.delete()
+
+        if settings.REST_AUTH.get("SESSION_LOGIN", False):
+            logout(request)
+
+        resp = response.Response(
+            {"detail": "Successfully logged out."},
+            status=status.HTTP_200_OK,
+        )
+
+        if settings.REST_AUTH.get("USE_JWT", True):
+            cookie_name = settings.REST_AUTH.get("JWT_AUTH_COOKIE", "access")
+
+            unset_jwt_cookies(resp)
+
+            if "rest_framework_simplejwt.token_blacklist" in settings.INSTALLED_APPS:
+                # add refresh token to blacklist
+                try:
+                    token = RefreshToken(
+                        request.COOKIES.get(
+                            settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE")
+                        )
+                        or request.data.get(
+                            settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE")
+                        )
+                    )
+                    token.blacklist()
+                except KeyError:
+                    resp.data = {
+                        "detail": "Refresh token was not included in request data."
+                    }
+                    resp.status_code = status.HTTP_401_UNAUTHORIZED
+                except (TokenError, AttributeError, TypeError) as error:
+                    if hasattr(error, "args"):
+                        if (
+                            "Token is blacklisted" in error.args
+                            or "Token is invalid or expired" in error.args
+                        ):
+                            resp.data = {"detail": error.args[0]}
+                            resp.status_code = status.HTTP_401_UNAUTHORIZED
+                        else:
+                            resp.data = {"detail": "An error has occurred."}
+                            resp.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+
+                    else:
+                        resp.data = {"detail": "An error has occurred."}
+                        resp.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+
+            elif not cookie_name:
+                message = (
+                    "Neither cookies or blacklist are enabled, so the token "
+                    "has not been deleted server side. Please make sure the token is deleted client side.",
+                )
+                resp.data = {"detail": message}
+                resp.status_code = status.HTTP_200_OK
+        return resp
 
 
 class OTPLoginView(views.APIView):
@@ -233,7 +406,7 @@ class OTPLoginView(views.APIView):
     def _otp_login(current_user, request):
         refresh = RefreshToken.for_user(current_user)
         refresh["email"] = current_user.email
-        if settings.REST_SESSION_LOGIN:
+        if settings.REST_AUTH.get("SESSION_LOGIN", False):
             login(request, current_user)
         resp = response.Response()
 
@@ -244,8 +417,8 @@ class OTPLoginView(views.APIView):
         )
 
         resp.data = {
-            settings.JWT_AUTH_REFRESH_COOKIE: str(refresh),
-            settings.JWT_AUTH_COOKIE: str(refresh.access_token),
+            settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE"): str(refresh),
+            settings.REST_AUTH.get("JWT_AUTH_COOKIE"): str(refresh.access_token),
         }
         resp.status_code = status.HTTP_200_OK
         return resp
@@ -255,60 +428,20 @@ class OTPLoginView(views.APIView):
         serializer.is_valid(raise_exception=True)
         secret = serializer.validated_data.get("secret")
         otp = serializer.validated_data.get("otp")
-        decrypted = helper.decode(str(secret))
-        data = jwt.decode(
-            jwt=decrypted,
-            key=settings.SECRET_KEY,
-            algorithms=settings.SIMPLE_JWT["ALGORITHM"],
-        )
-        current_user = models.User.objects.get(id=data["user_id"])
-        current_user_key = helper.decode(str(current_user.user_otp.key))
-        print(current_user_key)
-        totp = pyotp.TOTP(current_user_key)
-        print(totp.now())
-        if totp.verify(otp):
-            return self._otp_login(current_user=current_user, request=request)
-        else:
-            raise exceptions.NotAcceptable(detail="OTP is Wrong or Expired!!!")
-
-
-class MyTokenRefreshView(generics.GenericAPIView):
-    """
-    View for get new access token for a valid refresh token
-    """
-
-    serializer_class = serializers.TokenRefreshSerializer
-
-    @staticmethod
-    def _set_cookie(resp, serializer):
-        if refresh := serializer.validated_data.get(
-            settings.JWT_AUTH_REFRESH_COOKIE
-        ):  # noqa
-            set_jwt_refresh_cookie(
-                response=resp,
-                refresh_token=refresh,
-            )
-        set_jwt_access_cookie(
-            response=resp,
-            access_token=serializer.validated_data.get(
-                settings.JWT_AUTH_COOKIE
-            ),  # noqa
-        )
-
-    def post(self, request, *args, **kwargs):
-        refresh = request.COOKIES.get(
-            settings.JWT_AUTH_REFRESH_COOKIE
-        ) or request.data.get(settings.JWT_AUTH_REFRESH_COOKIE)
-
-        serializer = self.serializer_class(
-            data={settings.JWT_AUTH_REFRESH_COOKIE: refresh}
-        )
-        serializer.is_valid(raise_exception=True)
-        resp = response.Response()
-        self._set_cookie(resp=resp, serializer=serializer)
-        resp.data = serializer.validated_data
-        resp.status_code = status.HTTP_200_OK
-        return resp
+        decrypted = helper.decrypt(str(secret))
+        try:
+            data = helper.decode_token(token=decrypted)
+            current_user = models.User.objects.get(id=data["user_id"])
+            current_user_key = helper.decrypt(str(current_user.user_otp.key))
+            print(current_user_key)
+            totp = pyotp.TOTP(current_user_key)
+            print(totp.now())
+            if totp.verify(otp):
+                return self._otp_login(current_user=current_user, request=request)
+            else:
+                raise exceptions.NotAcceptable(detail="OTP is Wrong or Expired!!!")
+        except DecodeError as e:
+            raise InvalidToken(detail="Wrong Secret") from e
 
 
 class OTPCheckView(views.APIView):
@@ -371,7 +504,7 @@ class QRCreateView(views.APIView):
 
         totp = pyotp.TOTP(generated_key)
         if totp.verify(otp):
-            user_otp.key = helper.encode(str(generated_key))
+            user_otp.key = helper.encrypt(str(generated_key))
             user_otp.is_active = True
             user_otp.save()
             return response.Response(
@@ -390,35 +523,96 @@ class QRCreateView(views.APIView):
         return response.Response({"message": "OTP Removed"})
 
 
-class NewUserView(generics.ListCreateAPIView):
+# Password Related Views
+
+
+class PasswordValidateView(views.APIView):
     """
-    New User Create View
+    View for validating password
     """
 
-    serializer_class = serializers.NewUserSerializer
-    queryset = models.User.objects.all()
-    permission_classes = []
-    authentication_classes = []
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.PasswordValidateSerializer
 
-    # permission_classes = [apipermissions.IsSuperUser]
+    def post(self, request, *args, **kwargs):
+        current_user = self.request.user
+        serializer = self.serializer_class(data=self.request.data)
+        serializer.is_valid(raise_exception=True)
 
-    def create(self, request, *args, **kwargs):
+        if authenticate(
+            request=request,
+            username=current_user.email,
+            password=serializer.validated_data.get("password"),
+        ):
+            return response.Response(
+                {"message": "Password Accepted"}, status=status.HTTP_200_OK
+            )
+        return response.Response(
+            {"message": "Wrong Password"},
+            status=status.HTTP_406_NOT_ACCEPTABLE,
+        )
+
+
+class ChangePasswordView(generics.UpdateAPIView):
+    """
+    An endpoint for changing password.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.ChangePasswordSerializer
+
+    @staticmethod
+    def _logout_on_password_change(request):
+        resp = response.Response(
+            {"detail": "Password updated successfully"},
+            status=status.HTTP_200_OK,
+        )
+        if settings.REST_AUTH.get("SESSION_LOGIN", False):
+            logout(request)
+        unset_jwt_cookies(resp)
+        return resp
+
+    def _change_password(self, request, user, password):
+        password_validation.validate_password(password=password, user=user)
+        user.set_password(password)
+        user.save()
+        if settings.REST_AUTH.get("LOGOUT_ON_PASSWORD_CHANGE", True):
+            self._logout_on_password_change(request=request)
+        return response.Response(
+            {"detail": "Password updated successfully"},
+            status=status.HTTP_200_OK,
+        )
+
+    def update(self, request, *args, **kwargs):
+        user = self.request.user
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-        new_user = serializer.save()
-        user_data = serializer.data
-        tokens = RefreshToken.for_user(new_user)
-        refresh = str(tokens)
-        access = str(tokens.access_token)
 
-        return response.Response(
-            {
-                "user_data": user_data,
-                "refresh_token": refresh,
-                "access_token": access,
-            },
-            status=status.HTTP_201_CREATED,
-        )
+        # Check old password
+        old_password = serializer.validated_data.get("old_password")
+        if not user.check_password(old_password):
+            return response.Response(
+                {"old_password": ["Wrong password."]},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+        # set_password also hashes the password that the user will get
+        password = serializer.validated_data.get("password")
+        retype_password = serializer.validated_data.get("retype_password")
+
+        if password != retype_password:
+            raise exceptions.NotAcceptable(detail="Passwords do not match")
+        try:
+            self._change_password(
+                request=request,
+                user=user,
+                password=password,
+            )
+
+        except ValidationError as e:
+            return response.Response(
+                {"detail": e},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
 
 class ResetPasswordView(views.APIView):
@@ -440,45 +634,39 @@ class ResetPasswordView(views.APIView):
             "is_email": True,
         }
 
-        return f"{args[1]}/auth/reset-password/{helper.encode(helper.create_token(payload=payload))}/"
+        return f"{args[1]}/auth/reset-password/{helper.encrypt(helper.encode_token(payload=payload))}/"
 
     def email_sender_helper(
-        self,
-        user,
-        origin,
-        organization_logo,
+        self, user, origin, organization_logo, attachment: BinaryIO = None
     ):
+        url = self.generate_link(user, origin)
         context = {
-            "url": self.generate_link(user, origin),
+            "url": url,
             "organization_logo": organization_logo,
         }
-        mail_sender(
-            subject="Forgot Password",
-            body=f"To reset your password please click this link {self.generate_link(user, origin)}",
-            html_message=render_to_string(template_name="email.html", context=context),
-            # attachment=files,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=(user.email,),
-            # reply_to=("mail@gmail.com",),
-            # cc=("mail1@gmail.com", "mail2@gmail.com"),
-            # bcc=("mail3@gmail.com",),
-            smtp_host=settings.EMAIL_HOST,
-            smtp_port=settings.EMAIL_PORT,
-            auth_user=settings.EMAIL_HOST_USER,
-            auth_password=settings.EMAIL_HOST_PASSWORD,
-            use_ssl=settings.EMAIL_USE_SSL,
-            use_tls=settings.EMAIL_USE_TLS,
-        )
-
+        # TODO Mail sender function called for later
         # task.send_mail_task.delay(
-        #     subject="Reset Password",
-        #     to_mail=user.email,
-        #     from_mail=settings.DEFAULT_FROM_EMAIL,
-        #     html_msg="password-reset-link.html",
-        #     txt_msg="password-reset-link.txt",
-        #     context=context,
-        #     plain_msg=None,
+        #     subject=helper.encrypt("Forget Password"),
+        #     body=helper.encrypt(f"To reset your password please click this link {url}"),
+        #     html_message=helper.encrypt(
+        #         render_to_string(template_name="forget_password.html", context=context)
+        #     ),
+        #     attachment=attachment.read() if attachment else None,
+        #     attachment_name=attachment.name if attachment else None,
+        #     from_email=helper.encrypt(settings.DEFAULT_FROM_EMAIL),
+        #     recipient_list=(user.email,),
+        #     # reply_to=("mail@gmail.com",),
+        #     # cc=("mail1@gmail.com", "mail2@gmail.com"),
+        #     # bcc=("mail3@gmail.com",),
+        #     smtp_host=helper.encrypt(settings.EMAIL_HOST),
+        #     smtp_port=helper.encrypt(settings.EMAIL_PORT),
+        #     auth_user=helper.encrypt(settings.EMAIL_HOST_USER),
+        #     auth_password=helper.encrypt(settings.EMAIL_HOST_PASSWORD),
+        #     use_ssl=settings.EMAIL_USE_SSL,
+        #     use_tls=settings.EMAIL_USE_TLS,
+        #     already_encrypted=False,
         # )
+
         return response.Response({"detail": "Email Sent", "is_email": True})
 
     def post(self, *args, **kwargs):
@@ -488,11 +676,7 @@ class ResetPasswordView(views.APIView):
             raise exceptions.PermissionDenied() from e
         ser = self.serializer_class(data=self.request.data)
         ser.is_valid(raise_exception=True)
-
-        user = models.User.objects.get(
-            Q(email=ser.validated_data.get("username"))
-            | Q(username=ser.validated_data.get("username"))
-        )
+        user = ser.user
 
         if user.email:
             organization_logo = (
@@ -520,11 +704,7 @@ class ResetPasswordCheckView(views.APIView):
         ser.is_valid(raise_exception=True)
 
         try:
-            data = jwt.decode(
-                jwt=helper.decode(str(ser.data.get("token"))),
-                key=settings.SECRET_KEY,
-                algorithms="HS256",
-            )
+            helper.decode_token(token=helper.decrypt(str(ser.data.get("token"))))
 
         except Exception as e:
             raise exceptions.APIException(detail=e) from e
@@ -552,11 +732,7 @@ class ResetPasswordConfirmView(views.APIView):
 
     @staticmethod
     def _change_password(ser):
-        decoded = jwt.decode(
-            jwt=helper.decode(str(ser.data.get("token"))),
-            key=settings.SECRET_KEY,
-            algorithms="HS256",
-        )
+        decoded = helper.decode_token(token=helper.decrypt(str(ser.data.get("token"))))
 
         if ser.validated_data.get("password") != ser.validated_data.get(
             "retype_password"
@@ -570,3 +746,13 @@ class ResetPasswordConfirmView(views.APIView):
         user.set_password(ser.data.get("password"))
         user.save()
         return response.Response({"detail": "Password Changed Successfully"})
+
+
+# Profile Related Views
+class UserProfileView(generics.RetrieveUpdateAPIView):
+    serializer_class = serializers.UserSerializer
+    queryset = models.User.objects.all()
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_object(self):
+        return self.request.user

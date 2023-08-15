@@ -6,7 +6,8 @@ from user import views
 urlpatterns = []
 
 login_urlpatterns = [
-    path("login/", views.MyTokenObtainPairView.as_view()),
+    path("login/", views.LoginView.as_view()),
+    path("logout/", views.LogoutView.as_view()),
     path("otp-login/", views.OTPLoginView.as_view()),
     path("otp-check/", views.OTPCheckView.as_view()),
     path("qr-create/", views.QRCreateView.as_view()),
@@ -23,17 +24,38 @@ password_urlpatterns = [
 ]
 
 signup_urlpatterns = [
-    # path('registration/', views.NewUserView.as_view()),
+    path(
+        "registration/",
+        views.NewUserView.as_view(
+            {
+                "post": "create",
+            }
+        ),
+    ),
+    path(
+        "resend-verification-email/",
+        views.NewUserView.as_view(
+            {
+                "post": "resend_email",
+            }
+        ),
+    ),
+    path(
+        "verify-email/<str:token>/",
+        views.NewUserView.as_view(
+            {
+                "get": "verify_email",
+            }
+        ),
+    ),
 ]
 
 user_urlpatterns = [
-    # path(
-    #     "user/",
-    #     views.UserProfileView.as_view(),
-    #     name="user-retrieve-update-destroy-api",
-    # ),
-    # path("user-information/", views.UserInformationView.as_view()),
-    # path("user-information/<uuid:user_id>/", views.UserInformationView.as_view()),
+    path(
+        "user/",
+        views.UserProfileView.as_view(),
+        name="user-retrieve-update-api",
+    ),
 ]
 
 urlpatterns += login_urlpatterns

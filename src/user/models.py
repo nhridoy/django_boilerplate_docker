@@ -1,16 +1,17 @@
 import uuid
 
+from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 
 # from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from phonenumber_field.modelfields import PhoneNumberField
 
 from core.models import BaseModel
+from helper import helper
 from user.managers import UserManager
-
-# Create your models here.
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -32,7 +33,9 @@ class User(AbstractBaseUser, PermissionsMixin):
         max_length=100,
         verbose_name="Email",
         unique=True,
+        validators=[helper.validate_email],
     )
+    is_email_verified = models.BooleanField(default=False)
     date_joined = models.DateTimeField(
         verbose_name="Date Joined",
         auto_now_add=True,
@@ -83,8 +86,7 @@ class UserInformationModel(BaseModel):
     last_name = models.CharField(
         max_length=254,
     )
-    phone_number = models.CharField(
-        max_length=50,
+    phone_number = PhoneNumberField(
         verbose_name="Phone Number",
     )
 
@@ -164,6 +166,28 @@ def create_instance(sender, instance, created, **kwargs):
         UserInformationModel.objects.create(
             user=instance,
         )
+
+        # TODO Mail sender function called for later
+        # if not settings.EMAIL_VERIFICATION_REQUIRED or instance.is_email_verified:
+        #     task.send_mail_task.delay(
+        #         subject=helper.encrypt("Welcome to MailGrass"),
+        #         body=helper.encrypt(f"Welcome {instance.username}"),
+        #         # html_message=helper.encrypt(render_to_string(template_name="forget_password.html", context=context)),
+        #         # attachment=attachment.read() if attachment else None,
+        #         # attachment_name=attachment.name if attachment else None,
+        #         from_email=helper.encrypt(settings.DEFAULT_FROM_EMAIL),
+        #         recipient_list=(instance.email,),
+        #         # reply_to=("mail@gmail.com",),
+        #         # cc=("mail1@gmail.com", "mail2@gmail.com"),
+        #         # bcc=("mail3@gmail.com",),
+        #         smtp_host=helper.encrypt(settings.EMAIL_HOST),
+        #         smtp_port=helper.encrypt(settings.EMAIL_PORT),
+        #         auth_user=helper.encrypt(settings.EMAIL_HOST_USER),
+        #         auth_password=helper.encrypt(settings.EMAIL_HOST_PASSWORD),
+        #         use_ssl=settings.EMAIL_USE_SSL,
+        #         use_tls=settings.EMAIL_USE_TLS,
+        #         already_encrypted=False,
+        #     )
 
 
 @receiver(post_save, sender=User)
