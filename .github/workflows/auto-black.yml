@@ -11,7 +11,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with: # https://github.com/stefanzweifel/git-auto-commit-action#checkout-the-correct-branch
           ref: ${{ github.event.pull_request.head.sha }}
       - uses: actions/setup-python@v4
