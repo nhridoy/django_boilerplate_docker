@@ -9,10 +9,10 @@ from django.contrib.auth import authenticate, login, logout, password_validation
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.template.loader import render_to_string
 from jwt import DecodeError
-from rest_framework import (  # noqa
+from rest_framework import (
     exceptions,
     generics,
-    permissions,
+    permissions,  # noqa
     response,
     status,
     views,
