@@ -630,6 +630,7 @@ class ResetPasswordView(views.APIView):
     serializer_class = serializers.ResetPasswordSerializer
     authentication_classes = []
     permission_classes = []
+    throttle_classes = (AnonUserRateThrottle,)
 
     @staticmethod
     def generate_link(*args):
