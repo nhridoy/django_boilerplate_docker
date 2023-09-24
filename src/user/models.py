@@ -190,7 +190,7 @@ def create_instance(sender, instance, created, **kwargs):
         #     )
 
 
-@receiver(post_save, sender=User)
-def save_instance(sender, instance, **kwargs):
-    instance.user_otp.save()
-    instance.user_information.save()
+# @receiver(post_save, sender=User)
+# def save_instance(sender, instance, **kwargs):
+#     instance.user_otp.save()
+#     instance.user_information.save()

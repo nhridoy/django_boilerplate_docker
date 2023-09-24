@@ -9,7 +9,7 @@ class EmailPhoneUsernameAuthenticationBackend(object):
     @staticmethod
     def authenticate(request, username=None, password=None):
         try:
-            user = User.objects.get(
+            user = User.objects.select_related("user_otp").get(
                 Q(user_information__phone_number=username)
                 | Q(email=username)
                 | Q(username=username),

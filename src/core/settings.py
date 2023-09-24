@@ -38,6 +38,7 @@ DJANGO_DB_NAME = os.getenv("DB_NAME")
 DJANGO_DB_USER = os.getenv("DB_USER")
 DJANGO_DB_PASSWORD = os.getenv("DB_PASSWORD")
 DJANGO_DB_HOST = os.getenv("DB_HOST")
+DJANGO_DB_PORT = os.getenv("DB_PORT")
 
 # Email configuration
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
@@ -213,6 +214,7 @@ if ON_PRODUCTION:
             "USER": DJANGO_DB_USER,
             "PASSWORD": DJANGO_DB_PASSWORD,
             "HOST": DJANGO_DB_HOST,
+            "PORT": DJANGO_DB_PORT,
         }
     }
 else:

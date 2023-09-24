@@ -31,6 +31,7 @@ from .auth import (
     set_jwt_refresh_cookie,
     unset_jwt_cookies,
 )
+from .throttle import AnonUserRateThrottle
 
 # Signup View
 
@@ -45,6 +46,11 @@ class NewUserView(viewsets.ModelViewSet):
     authentication_classes = ()
 
     # permission_classes = [apipermissions.IsSuperUser]
+    def get_throttles(self):
+        # permission_classes = [apipermissions.IsSuperUser]
+        if self.action == "resend_email":
+            return [AnonUserRateThrottle()]
+        return super().get_throttles()
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -204,10 +210,10 @@ class LoginView(TokenObtainPairView):
                     set cookie with access and refresh token and returns
     """
 
-    serializer_class = serializers.MyTokenObtainPairSerializer
+    serializer_class = serializers.TokenObtainPairSerializer
 
     @staticmethod
-    def _direct_login(request, user, serializer):
+    def _direct_login(request, user, token_data):
         """
         Method for login without OTP
         """
@@ -217,14 +223,14 @@ class LoginView(TokenObtainPairView):
 
         set_jwt_cookies(
             response=resp,
-            access_token=serializer.validated_data.get(
+            access_token=token_data.get(
                 settings.REST_AUTH.get("JWT_AUTH_COOKIE"),
             ),
-            refresh_token=serializer.validated_data.get(
+            refresh_token=token_data.get(
                 settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE"),
             ),
         )
-        resp.data = serializer.validated_data
+        resp.data = token_data
         resp.status_code = status.HTTP_200_OK
         return resp
 
@@ -244,11 +250,7 @@ class LoginView(TokenObtainPairView):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        user = authenticate(
-            request=request,
-            username=request.data.get("username"),
-            password=request.data.get("password"),
-        )
+        user = serializer.validated_data[1]
         if settings.EMAIL_VERIFICATION_REQUIRED and not user.is_email_verified:
             return response.Response(
                 data={
@@ -261,7 +263,9 @@ class LoginView(TokenObtainPairView):
         try:
             if user.user_otp.is_active:
                 return self._otp_login(user=user)
-            return self._direct_login(request=request, user=user, serializer=serializer)
+            return self._direct_login(
+                request=request, user=user, token_data=serializer.validated_data[0]
+            )
 
         except TokenError as e:
             raise InvalidToken(e.args[0]) from e
@@ -273,6 +277,8 @@ class MyTokenRefreshView(generics.GenericAPIView):
     """
 
     serializer_class = serializers.TokenRefreshSerializer
+    permission_classes = ()
+    authentication_classes = ()
 
     @staticmethod
     def _set_cookie(resp, serializer):

@@ -2,6 +2,7 @@ import contextlib
 
 from django.conf import settings
 from django.contrib.auth import authenticate
+from django.contrib.auth.models import update_last_login
 from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
 from django.db.models import Q
@@ -12,39 +13,32 @@ from rest_framework import exceptions, serializers, validators
 from rest_framework_simplejwt import settings as jwt_settings
 from rest_framework_simplejwt import tokens
 from rest_framework_simplejwt.exceptions import TokenError
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.serializers import TokenObtainSerializer
 
 from user import models
 
 
-class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
-    """
-    JWT Custom Token Claims Serializer
-    """
+class TokenObtainPairSerializer(TokenObtainSerializer):
+    token_class = tokens.RefreshToken
 
-    @staticmethod
-    def validate_email_verification_status(user):
-        from allauth.account import app_settings
+    def validate(self, attrs):
+        data = super().validate(attrs)
 
-        if (
-            app_settings.EMAIL_VERIFICATION
-            == app_settings.EmailVerificationMethod.MANDATORY
-            and not user.emailaddress_set.filter(
-                email=user.email, verified=True
-            ).exists()
-        ):
-            raise serializers.ValidationError(_("E-mail is not verified."))
-
-    @classmethod
-    def get_token(cls, user):
-        token = super().get_token(user)
-        cls.validate_email_verification_status(user)
+        refresh = self.get_token(self.user)
         # Add custom claims
-        token["email"] = user.email
-        token["is_superuser"] = user.is_superuser
-        token["is_staff"] = user.is_staff
+        refresh["email"] = self.user.email
+        refresh["is_superuser"] = self.user.is_superuser
+        refresh["is_staff"] = self.user.is_staff
 
-        return token
+        data[settings.REST_AUTH.get("JWT_AUTH_COOKIE")] = str(refresh)
+        data[settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE")] = str(
+            refresh.access_token
+        )
+
+        if settings.SIMPLE_JWT.get("UPDATE_LAST_LOGIN"):
+            update_last_login(None, self.user)
+
+        return data, self.user
 
 
 class LoginSerializer(serializers.Serializer):
