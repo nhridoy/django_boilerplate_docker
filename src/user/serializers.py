@@ -30,10 +30,8 @@ class TokenObtainPairSerializer(TokenObtainSerializer):
         refresh["is_superuser"] = self.user.is_superuser
         refresh["is_staff"] = self.user.is_staff
 
-        data[settings.REST_AUTH.get("JWT_AUTH_COOKIE")] = str(refresh)
-        data[settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE")] = str(
-            refresh.access_token
-        )
+        data[settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE")] = str(refresh)
+        data[settings.REST_AUTH.get("JWT_AUTH_COOKIE")] = str(refresh.access_token)
 
         if settings.SIMPLE_JWT.get("UPDATE_LAST_LOGIN"):
             update_last_login(None, self.user)
