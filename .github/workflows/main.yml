@@ -18,7 +18,7 @@ jobs:
           path: "app/backend"
       - name: remove git from sub-repo
         run: rm -rf app/backend/.git && git add .
-      - uses: stefanzweifel/git-auto-commit-action@v4
+      - uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: backend-${{ github.event.head_commit.message }}
           commit_user_name: ${{ github.event.pusher.name }}
