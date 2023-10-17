@@ -7,13 +7,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ssh-key: ${{ secrets.PAK }}
           repository: "nhridoy/repo_name"
       - name: Cleanup sub-repo
         run: rm -rf app/backend
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           path: "app/backend"
       - name: remove git from sub-repo
