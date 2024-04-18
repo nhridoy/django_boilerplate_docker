@@ -5,6 +5,7 @@ djangorestframework
 markdown
 django-filter
 djangorestframework-simplejwt
+django-phonenumber-field[phonenumbers]
 cryptography
 django_cleanup
 dj-crontab
@@ -16,3 +17,4 @@ Pillow
 whitenoise
 black
 isort
+mailchecker

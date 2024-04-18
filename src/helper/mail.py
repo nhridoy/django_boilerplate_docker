@@ -47,9 +47,9 @@ def mail_sender(
                     cc=cc,
                     bcc=bcc,
                     reply_to=reply_to,
-                    alternatives=((html_message, "text/html"),)
-                    if html_message
-                    else None,
+                    alternatives=(
+                        ((html_message, "text/html"),) if html_message else None
+                    ),
                 )
                 for recipient in recipient_list
             ]
