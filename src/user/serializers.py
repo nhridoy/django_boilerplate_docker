@@ -13,30 +13,52 @@ from rest_framework import exceptions, serializers, validators
 from rest_framework_simplejwt import settings as jwt_settings
 from rest_framework_simplejwt import tokens
 from rest_framework_simplejwt.exceptions import TokenError
-from rest_framework_simplejwt.serializers import TokenObtainSerializer
+from rest_framework_simplejwt.serializers import (
+    TokenObtainPairSerializer,
+    TokenObtainSerializer,
+)
 
 from user import models
 
 
-class TokenObtainPairSerializer(TokenObtainSerializer):
-    token_class = tokens.RefreshToken
-
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
-
-        refresh = self.get_token(self.user)
-        # Add custom claims
-        refresh["email"] = self.user.email
-        refresh["is_superuser"] = self.user.is_superuser
-        refresh["is_staff"] = self.user.is_staff
-
-        data[settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE")] = str(refresh)
-        data[settings.REST_AUTH.get("JWT_AUTH_COOKIE")] = str(refresh.access_token)
 
         if settings.SIMPLE_JWT.get("UPDATE_LAST_LOGIN"):
             update_last_login(None, self.user)
 
         return data, self.user
+
+    def get_token(self, user):
+        token = super().get_token(user)
+        token["username"] = user.username
+        token["email"] = user.email
+        token["is_staff"] = user.is_staff
+        token["is_active"] = user.is_active
+        token["is_superuser"] = user.is_superuser
+        return token
+
+
+# class TokenObtainPairSerializer(TokenObtainSerializer):
+#     token_class = tokens.RefreshToken
+#
+#     def validate(self, attrs):
+#         data = super().validate(attrs)
+#
+#         refresh = self.get_token(self.user)
+#         # Add custom claims
+#         refresh["email"] = self.user.email
+#         refresh["is_superuser"] = self.user.is_superuser
+#         refresh["is_staff"] = self.user.is_staff
+#
+#         data[settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE")] = str(refresh)
+#         data[settings.REST_AUTH.get("JWT_AUTH_COOKIE")] = str(refresh.access_token)
+#
+#         if settings.SIMPLE_JWT.get("UPDATE_LAST_LOGIN"):
+#             update_last_login(None, self.user)
+#
+#         return data, self.user
 
 
 class LoginSerializer(serializers.Serializer):

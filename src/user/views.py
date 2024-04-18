@@ -211,7 +211,7 @@ class LoginView(TokenObtainPairView):
                     set cookie with access and refresh token and returns
     """
 
-    serializer_class = serializers.TokenObtainPairSerializer
+    serializer_class = serializers.CustomTokenObtainPairSerializer
 
     @staticmethod
     def _direct_login(request, user, token_data):
