@@ -173,33 +173,33 @@ class LoginSerializer(serializers.Serializer):
         return attrs
 
 
-class TokenRefreshSerializer(serializers.Serializer):
-    refresh = serializers.CharField()
-
-    token_class = tokens.RefreshToken
-
-    def validate(self, attrs):
-        try:
-            refresh = self.token_class(attrs["refresh"])
-        except TokenError as e:
-            raise exceptions.AuthenticationFailed(detail=e) from e
-
-        data = {"access": str(refresh.access_token)}
-
-        if jwt_settings.api_settings.ROTATE_REFRESH_TOKENS:
-            if jwt_settings.api_settings.BLACKLIST_AFTER_ROTATION:
-                with contextlib.suppress(AttributeError):
-                    # Attempt to blacklist the given refresh token
-                    # If blacklist app not installed, `blacklist` method
-                    # will not be present
-                    refresh.blacklist()
-            refresh.set_jti()
-            refresh.set_exp()
-            refresh.set_iat()
-
-            data["refresh"] = str(refresh)
-
-        return data
+# class TokenRefreshSerializer(serializers.Serializer):
+#     refresh = serializers.CharField()
+#
+#     token_class = tokens.RefreshToken
+#
+#     def validate(self, attrs):
+#         try:
+#             refresh = self.token_class(attrs["refresh"])
+#         except TokenError as e:
+#             raise exceptions.AuthenticationFailed(detail=e) from e
+#
+#         data = {"access": str(refresh.access_token)}
+#
+#         if jwt_settings.api_settings.ROTATE_REFRESH_TOKENS:
+#             if jwt_settings.api_settings.BLACKLIST_AFTER_ROTATION:
+#                 with contextlib.suppress(AttributeError):
+#                     # Attempt to blacklist the given refresh token
+#                     # If blacklist app not installed, `blacklist` method
+#                     # will not be present
+#                     refresh.blacklist()
+#             refresh.set_jti()
+#             refresh.set_exp()
+#             refresh.set_iat()
+#
+#             data["refresh"] = str(refresh)
+#
+#         return data
 
 
 class NewUserSerializer(serializers.ModelSerializer):

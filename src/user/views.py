@@ -19,6 +19,7 @@ from rest_framework import (  # noqa
     viewsets,
 )
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
@@ -276,7 +277,7 @@ class MyTokenRefreshView(generics.GenericAPIView):
     View for get new access token for a valid refresh token
     """
 
-    serializer_class = serializers.TokenRefreshSerializer
+    serializer_class = TokenRefreshSerializer
     permission_classes = ()
     authentication_classes = ()
 
@@ -320,7 +321,7 @@ class LogoutView(views.APIView):
     Accepts/Returns nothing.
     """
 
-    permission_classes = (permissions.AllowAny,)
+    permission_classes = (permissions.IsAuthenticated,)
     throttle_scope = "dj_rest_auth"
 
     def get(self, request, *args, **kwargs):
