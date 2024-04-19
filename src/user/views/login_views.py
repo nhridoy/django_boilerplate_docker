@@ -145,11 +145,13 @@ class MyTokenRefreshView(generics.GenericAPIView):
 
     def post(self, request, *args, **kwargs):
         refresh = request.COOKIES.get(
-            settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE")
-        ) or request.data.get(settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE"))
+            settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE", "refresh")
+        ) or request.data.get(
+            settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE", "refresh")
+        )
 
         serializer = self.serializer_class(
-            data={settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE"): refresh}
+            data={settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE", "refresh"): refresh}
         )
         serializer.is_valid(raise_exception=True)
         resp = response.Response()
@@ -342,7 +344,7 @@ class QRCreateView(views.APIView):
     def get(self, request, *args, **kwargs):
         generated_key = pyotp.random_base32()
         current_user = self.request.user
-        qr_key = pyotp.totp.TOTP(generated_key).provisioning_uri(
+        qr_key = pyotp.TOTP(generated_key).provisioning_uri(
             name=current_user.email, issuer_name=settings.PROJECT_NAME
         )
         return response.Response(
