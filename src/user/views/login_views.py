@@ -11,7 +11,7 @@ from dj_rest_auth.jwt_auth import (
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout, password_validation  # noqa
 from django.core.exceptions import ObjectDoesNotExist
-from jwt import DecodeError
+from jwt import DecodeError, ExpiredSignatureError
 from rest_framework import (  # noqa
     exceptions,
     generics,
@@ -277,7 +277,7 @@ class OTPLoginView(views.APIView):
 
         print(totp.now())
         if not totp.verify(otp):
-            raise exceptions.NotAcceptable(detail="OTP is Wrong or Expired!!!")
+            raise ExpiredSignatureError("OTP is Wrong or Expired!!!")
         token = self._get_token(current_user)
         return direct_login(
             user=current_user,

@@ -377,7 +377,7 @@ class QRCreateSerializer(serializers.Serializer):
 
 class OTPLoginSerializer(serializers.Serializer):
     """
-    Serializer to login with OTP
+    Serializer to log in with OTP
     """
 
     secret = serializers.CharField(write_only=True)
