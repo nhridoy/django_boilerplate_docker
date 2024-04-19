@@ -1,0 +1,366 @@
+import contextlib
+
+import pyotp
+from django.conf import settings
+from django.contrib.auth import authenticate, login, logout, password_validation  # noqa
+from django.core.exceptions import ObjectDoesNotExist
+from jwt import DecodeError
+from rest_framework import (  # noqa
+    exceptions,
+    generics,
+    permissions,
+    response,
+    status,
+    views,
+    viewsets,
+)
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
+
+from helper import helper
+from user import models, serializers
+from user.auth import (
+    set_jwt_access_cookie,
+    set_jwt_cookies,
+    set_jwt_refresh_cookie,
+    unset_jwt_cookies,
+)
+from user.throttle import AnonUserRateThrottle
+
+
+# Login Views
+class LoginView(TokenObtainPairView):
+    """
+    JWT Custom Token Claims View
+
+    MEHTOD: POST:
+        username/email
+        password
+            if otp enabled:
+                return secret key for next otp step
+            else:
+                if session auth enabled:
+                    login user
+                else:
+                    set cookie with access and refresh token and returns
+    """
+
+    serializer_class = serializers.CustomTokenObtainPairSerializer
+
+    @staticmethod
+    def _direct_login(request, user, token_data):
+        """
+        Method for login without OTP
+        """
+        if settings.REST_AUTH.get("SESSION_LOGIN", False):
+            login(request, user)
+        resp = response.Response()
+
+        set_jwt_cookies(
+            response=resp,
+            access_token=token_data.get(
+                settings.REST_AUTH.get("JWT_AUTH_COOKIE"),
+            ),
+            refresh_token=token_data.get(
+                settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE"),
+            ),
+        )
+        resp.data = token_data
+        resp.status_code = status.HTTP_200_OK
+        return resp
+
+    @staticmethod
+    def _otp_login(user):
+        """
+        Method for returning secret key if OTP is active for user
+        """
+        refresh_token = RefreshToken.for_user(user)
+        fer_key = helper.encrypt(str(refresh_token))
+        return response.Response(
+            {"secret": fer_key},
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = serializer.validated_data[1]
+        if settings.EMAIL_VERIFICATION_REQUIRED and not user.is_email_verified:
+            return response.Response(
+                data={
+                    "detail": "Email not Verified",
+                    "email_verification_required": True,
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
+            if user.user_otp.is_active:
+                return self._otp_login(user=user)
+            return self._direct_login(
+                request=request, user=user, token_data=serializer.validated_data[0]
+            )
+
+        except TokenError as e:
+            raise InvalidToken(e.args[0]) from e
+
+
+class MyTokenRefreshView(generics.GenericAPIView):
+    """
+    View for get new access token for a valid refresh token
+    """
+
+    serializer_class = TokenRefreshSerializer
+    permission_classes = ()
+    authentication_classes = ()
+
+    @staticmethod
+    def _set_cookie(resp, serializer):
+        if refresh := serializer.validated_data.get(
+            settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE")
+        ):  # noqa
+            set_jwt_refresh_cookie(
+                response=resp,
+                refresh_token=refresh,
+            )
+        set_jwt_access_cookie(
+            response=resp,
+            access_token=serializer.validated_data.get(
+                settings.REST_AUTH.get("JWT_AUTH_COOKIE")
+            ),  # noqa
+        )
+
+    def post(self, request, *args, **kwargs):
+        refresh = request.COOKIES.get(
+            settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE")
+        ) or request.data.get(settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE"))
+
+        serializer = self.serializer_class(
+            data={settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE"): refresh}
+        )
+        serializer.is_valid(raise_exception=True)
+        resp = response.Response()
+        self._set_cookie(resp=resp, serializer=serializer)
+        resp.data = serializer.validated_data
+        resp.status_code = status.HTTP_200_OK
+        return resp
+
+
+class LogoutView(views.APIView):
+    """
+    Calls Django logout method and delete the Token object
+    assigned to the current User object.
+
+    Accepts/Returns nothing.
+    """
+
+    permission_classes = (permissions.IsAuthenticated,)
+    throttle_scope = "dj_rest_auth"
+
+    def get(self, request, *args, **kwargs):
+        if getattr(settings, "ACCOUNT_LOGOUT_ON_GET", False):
+            resp = self._logout(request)
+        else:
+            resp = self.http_method_not_allowed(request, *args, **kwargs)
+
+        return self.finalize_response(request, resp, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        return self._logout(request)
+
+    @staticmethod
+    def _logout(request):
+        with contextlib.suppress(AttributeError, ObjectDoesNotExist):
+            request.user.auth_token.delete()
+
+        if settings.REST_AUTH.get("SESSION_LOGIN", False):
+            logout(request)
+
+        resp = response.Response(
+            {"detail": "Successfully logged out."},
+            status=status.HTTP_200_OK,
+        )
+
+        if settings.REST_AUTH.get("USE_JWT", True):
+            cookie_name = settings.REST_AUTH.get("JWT_AUTH_COOKIE", "access")
+
+            unset_jwt_cookies(resp)
+
+            if "rest_framework_simplejwt.token_blacklist" in settings.INSTALLED_APPS:
+                # add refresh token to blacklist
+                try:
+                    token = RefreshToken(
+                        request.COOKIES.get(
+                            settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE")
+                        )
+                        or request.data.get(
+                            settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE")
+                        )
+                    )
+                    token.blacklist()
+                except KeyError:
+                    resp.data = {
+                        "detail": "Refresh token was not included in request data."
+                    }
+                    resp.status_code = status.HTTP_401_UNAUTHORIZED
+                except (TokenError, AttributeError, TypeError) as error:
+                    if hasattr(error, "args"):
+                        if (
+                            "Token is blacklisted" in error.args
+                            or "Token is invalid or expired" in error.args
+                        ):
+                            resp.data = {"detail": error.args[0]}
+                            resp.status_code = status.HTTP_401_UNAUTHORIZED
+                        else:
+                            resp.data = {"detail": "An error has occurred."}
+                            resp.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+
+                    else:
+                        resp.data = {"detail": "An error has occurred."}
+                        resp.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+
+            elif not cookie_name:
+                message = (
+                    "Neither cookies or blacklist are enabled, so the token "
+                    "has not been deleted server side. Please make sure the token is deleted client side.",
+                )
+                resp.data = {"detail": message}
+                resp.status_code = status.HTTP_200_OK
+        return resp
+
+
+class OTPLoginView(views.APIView):
+    """
+    View for Login with OTP
+
+    Has two parameters
+        secret: secret key found from the login api route
+        otp: code from the authenticator app
+    """
+
+    authentication_classes = []
+    permission_classes = []
+    serializer_class = serializers.OTPLoginSerializer
+
+    @staticmethod
+    def _otp_login(current_user, request):
+        refresh = RefreshToken.for_user(current_user)
+        refresh["email"] = current_user.email
+        if settings.REST_AUTH.get("SESSION_LOGIN", False):
+            login(request, current_user)
+        resp = response.Response()
+
+        set_jwt_cookies(
+            response=resp,
+            access_token=refresh.access_token,
+            refresh_token=refresh,
+        )
+
+        resp.data = {
+            settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE"): str(refresh),
+            settings.REST_AUTH.get("JWT_AUTH_COOKIE"): str(refresh.access_token),
+        }
+        resp.status_code = status.HTTP_200_OK
+        return resp
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        secret = serializer.validated_data.get("secret")
+        otp = serializer.validated_data.get("otp")
+        decrypted = helper.decrypt(str(secret))
+        try:
+            data = helper.decode_token(token=decrypted)
+            current_user = models.User.objects.get(id=data["user_id"])
+            current_user_key = helper.decrypt(str(current_user.user_otp.key))
+            print(current_user_key)
+            totp = pyotp.TOTP(current_user_key)
+            print(totp.now())
+            if totp.verify(otp):
+                return self._otp_login(current_user=current_user, request=request)
+            else:
+                raise exceptions.NotAcceptable(detail="OTP is Wrong or Expired!!!")
+        except DecodeError as e:
+            raise InvalidToken(detail="Wrong Secret") from e
+
+
+class OTPCheckView(views.APIView):
+    """
+    Check if OTP is active for user or not
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.OTPCheckSerializer
+
+    def get(self, request, *args, **kwargs):
+        try:
+            user_otp = generics.get_object_or_404(
+                models.OTPModel, user=self.request.user
+            )
+            serializer = self.serializer_class(user_otp)
+            return response.Response(
+                {
+                    "detail": serializer.data.get("is_active"),
+                }
+            )
+        except Exception as e:
+            raise exceptions.APIException from e
+
+
+class QRCreateView(views.APIView):
+    """
+    Get method for QR Create
+    Post method for QR verify
+    Delete method for Disabling OTP
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.QRCreateSerializer
+
+    @staticmethod
+    def _clear_user_otp(user_otp):
+        user_otp.key = ""
+        user_otp.is_active = False
+        user_otp.save()
+
+    def get(self, request, *args, **kwargs):
+        generated_key = pyotp.random_base32()
+        current_user = self.request.user
+        qr_key = pyotp.totp.TOTP(generated_key).provisioning_uri(
+            name=current_user.email, issuer_name=settings.PROJECT_NAME
+        )
+        return response.Response(
+            {"qr_key": qr_key, "generated_key": generated_key},
+            status=status.HTTP_200_OK,
+        )
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        generated_key = serializer.validated_data.get("generated_key")
+        otp = serializer.validated_data.get("otp")
+        current_user = self.request.user
+        user_otp = models.OTPModel.objects.get(user=current_user)
+
+        totp = pyotp.TOTP(generated_key)
+        if totp.verify(otp):
+            user_otp.key = helper.encrypt(str(generated_key))
+            user_otp.is_active = True
+            user_otp.save()
+            return response.Response(
+                {"detail": "Accepted"},
+                status=status.HTTP_200_OK,
+            )
+        else:
+            print(totp.now())
+            self._clear_user_otp(user_otp)
+            raise exceptions.NotAcceptable(detail="OTP is Wrong or Expired!!!")
+
+    def delete(self, request, *args, **kwargs):
+        current_user = self.request.user
+        user_otp = models.OTPModel.objects.get(user=current_user)
+        self._clear_user_otp(user_otp)
+        return response.Response({"message": "OTP Removed"})
