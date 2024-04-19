@@ -1,6 +1,13 @@
 import contextlib
 
 import pyotp
+import requests
+from dj_rest_auth.jwt_auth import (
+    set_jwt_access_cookie,
+    set_jwt_cookies,
+    set_jwt_refresh_cookie,
+    unset_jwt_cookies,
+)
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout, password_validation  # noqa
 from django.core.exceptions import ObjectDoesNotExist
@@ -21,13 +28,38 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 
 from helper import helper
 from user import models, serializers
-from user.auth import (
-    set_jwt_access_cookie,
-    set_jwt_cookies,
-    set_jwt_refresh_cookie,
-    unset_jwt_cookies,
-)
 from user.throttle import AnonUserRateThrottle
+
+
+def direct_login(request: requests.Request, user, token_data):
+    """
+    Directly logs in a user by setting JWT cookies in the response and returning the token data.
+
+    Args:
+        request: The HTTP request object.
+        user: The user object to be logged in.
+        token_data: Dictionary containing token data.
+
+    Returns:
+        Response object with token data and status code.
+    """
+
+    if settings.REST_AUTH.get("SESSION_LOGIN", False):
+        login(request, user)
+    resp = response.Response()
+
+    set_jwt_cookies(
+        response=resp,
+        access_token=token_data.get(
+            settings.REST_AUTH.get("JWT_AUTH_COOKIE", "access"),
+        ),
+        refresh_token=token_data.get(
+            settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE", "refresh"),
+        ),
+    )
+    resp.data = token_data
+    resp.status_code = status.HTTP_200_OK
+    return resp
 
 
 # Login Views
@@ -50,36 +82,14 @@ class LoginView(TokenObtainPairView):
     serializer_class = serializers.CustomTokenObtainPairSerializer
 
     @staticmethod
-    def _direct_login(request, user, token_data):
-        """
-        Method for login without OTP
-        """
-        if settings.REST_AUTH.get("SESSION_LOGIN", False):
-            login(request, user)
-        resp = response.Response()
-
-        set_jwt_cookies(
-            response=resp,
-            access_token=token_data.get(
-                settings.REST_AUTH.get("JWT_AUTH_COOKIE"),
-            ),
-            refresh_token=token_data.get(
-                settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE"),
-            ),
-        )
-        resp.data = token_data
-        resp.status_code = status.HTTP_200_OK
-        return resp
-
-    @staticmethod
     def _otp_login(user):
         """
         Method for returning secret key if OTP is active for user
         """
         refresh_token = RefreshToken.for_user(user)
-        fer_key = helper.encrypt(str(refresh_token))
+        secret = helper.encrypt(str(refresh_token))
         return response.Response(
-            {"secret": fer_key},
+            {"secret": secret},
             status=status.HTTP_202_ACCEPTED,
         )
 
@@ -100,7 +110,7 @@ class LoginView(TokenObtainPairView):
         try:
             if user.user_otp.is_active:
                 return self._otp_login(user=user)
-            return self._direct_login(
+            return direct_login(
                 request=request, user=user, token_data=serializer.validated_data[0]
             )
 
@@ -245,46 +255,49 @@ class OTPLoginView(views.APIView):
     permission_classes = []
     serializer_class = serializers.OTPLoginSerializer
 
-    @staticmethod
-    def _otp_login(current_user, request):
-        refresh = RefreshToken.for_user(current_user)
-        refresh["email"] = current_user.email
-        if settings.REST_AUTH.get("SESSION_LOGIN", False):
-            login(request, current_user)
-        resp = response.Response()
-
-        set_jwt_cookies(
-            response=resp,
-            access_token=refresh.access_token,
-            refresh_token=refresh,
-        )
-
-        resp.data = {
-            settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE"): str(refresh),
-            settings.REST_AUTH.get("JWT_AUTH_COOKIE"): str(refresh.access_token),
-        }
-        resp.status_code = status.HTTP_200_OK
-        return resp
-
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-        secret = serializer.validated_data.get("secret")
-        otp = serializer.validated_data.get("otp")
-        decrypted = helper.decrypt(str(secret))
+
         try:
-            data = helper.decode_token(token=decrypted)
-            current_user = models.User.objects.get(id=data["user_id"])
-            current_user_key = helper.decrypt(str(current_user.user_otp.key))
-            print(current_user_key)
-            totp = pyotp.TOTP(current_user_key)
-            print(totp.now())
-            if totp.verify(otp):
-                return self._otp_login(current_user=current_user, request=request)
-            else:
-                raise exceptions.NotAcceptable(detail="OTP is Wrong or Expired!!!")
+            return self._validate_otp_and_generate_token(serializer, request)
         except DecodeError as e:
             raise InvalidToken(detail="Wrong Secret") from e
+
+    def _validate_otp_and_generate_token(self, serializer, request):
+        data = helper.decode_token(
+            token=helper.decrypt(str(serializer.validated_data.get("secret")))
+        )
+        otp = serializer.validated_data.get("otp")
+        current_user = generics.get_object_or_404(models.User, id=data.get("user_id"))
+        totp = pyotp.TOTP(helper.decrypt(str(current_user.user_otp.key)))
+
+        print(totp.now())
+        if not totp.verify(otp):
+            raise exceptions.NotAcceptable(detail="OTP is Wrong or Expired!!!")
+        token = self._get_token(current_user)
+        return direct_login(
+            user=current_user,
+            request=request,
+            token_data={
+                settings.REST_AUTH.get("JWT_AUTH_REFRESH_COOKIE", "refresh"): str(
+                    token
+                ),
+                settings.REST_AUTH.get("JWT_AUTH_COOKIE", "access"): str(
+                    token.access_token
+                ),
+            },
+        )
+
+    @staticmethod
+    def _get_token(user):
+        token = RefreshToken.for_user(user)
+        token["username"] = user.username
+        token["email"] = user.email
+        token["is_staff"] = user.is_staff
+        token["is_active"] = user.is_active
+        token["is_superuser"] = user.is_superuser
+        return token
 
 
 class OTPCheckView(views.APIView):
