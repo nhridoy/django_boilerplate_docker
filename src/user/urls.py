@@ -1,3 +1,4 @@
+from dj_rest_auth.views import LogoutView
 from django.urls import path
 from rest_framework_simplejwt.views import TokenVerifyView
 
@@ -7,11 +8,11 @@ urlpatterns = []
 
 login_urlpatterns = [
     path("login/", views.LoginView.as_view()),
-    path("logout/", views.LogoutView.as_view()),
+    path("logout/", LogoutView.as_view()),
     path("otp-login/", views.OTPLoginView.as_view()),
     path("otp-check/", views.OTPCheckView.as_view()),
     path("qr-create/", views.QRCreateView.as_view()),
-    path("token/refresh/", views.MyTokenRefreshView.as_view()),
+    path("token/refresh/", views.TokenRefreshView.as_view()),
     path("token/verify/", TokenVerifyView.as_view()),
 ]
 
