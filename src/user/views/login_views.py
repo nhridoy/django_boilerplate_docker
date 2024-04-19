@@ -377,6 +377,6 @@ class QRCreateView(views.APIView):
 
     def delete(self, request, *args, **kwargs):
         current_user = self.request.user
-        user_otp = models.OTPModel.objects.get(user=current_user)
+        user_otp = generics.get_object_or_404(models.OTPModel, user=current_user)
         self._clear_user_otp(user_otp)
         return response.Response({"message": "OTP Removed"})
