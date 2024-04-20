@@ -54,27 +54,17 @@ class ChangePasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError(detail="You have entered Wrong password.")
         return value
 
-    # def validate_retype_password(self, value):
-    #     user = self.context["request"].user
-    #     if not user.check_password(value):
-    #         raise serializers.ValidationError(
-    #             detail="You have entered Wrong password."
-    #         )
-    #     return value
+    def validate_retype_password(self, value):
+        if self.initial_data.get("password") != self.initial_data.get(
+            "retype_password"
+        ):
+            raise serializers.ValidationError("The two password fields didn't match.")
+        return value
 
-    def validate(self, attrs):
+    def validate_password(self, value):
         user = self.context["request"].user
-        if not user.check_password(attrs["old_password"]):
-            raise serializers.ValidationError(
-                {"old_password": "You have entered Wrong password."}
-            )
-        if attrs["password"] != attrs["retype_password"]:
-            raise serializers.ValidationError(
-                {"retype_password": "The two password fields didn't match."}
-            )
-        password_validation.validate_password(password=attrs["password"], user=user)
-
-        return attrs
+        password_validation.validate_password(password=value, user=user)
+        return value
 
 
 # Forget/Reset Password Section

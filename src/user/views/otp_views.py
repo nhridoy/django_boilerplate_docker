@@ -59,7 +59,7 @@ class OTPCreateView(views.APIView):
     """
 
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = serializers.QRCreateSerializer
+    serializer_class = serializers.OTPCreateSerializer
 
     @staticmethod
     def _clear_user_otp(user_otp):

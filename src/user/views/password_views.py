@@ -58,58 +58,53 @@ class PasswordValidateView(views.APIView):
 
 class ChangePasswordView(generics.UpdateAPIView):
     """
-    An endpoint for changing password.
+    ChangePasswordView class for updating the user's password.
+
+    _change_password method updates the user's password and handles logout based on settings.
+    update method validates and changes the user's password.
+
+    Args:
+        request: The HTTP request object.
+        args: Additional positional arguments.
+        kwargs: Additional keyword arguments.
+
+    Returns:
+        Response object with a success message or error details.
+    Raises:
+        ValidationError: If there is an issue with the password change.
     """
 
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = serializers.ChangePasswordSerializer
 
     @staticmethod
-    def _logout_on_password_change(request):
-        resp = response.Response(
-            {"detail": "Password updated successfully"},
-            status=status.HTTP_200_OK,
-        )
+    def _logout_on_password_change(request, resp):
         if settings.REST_AUTH.get("SESSION_LOGIN", False):
             logout(request)
         unset_jwt_cookies(resp)
         return resp
 
-    def _change_password(self, request, user, password):
-        # password_validation.validate_password(password=password, user=user)
+    def _change_password(self, password):
+        user = self.request.user
         user.set_password(password)
         user.save()
-        if settings.REST_AUTH.get("LOGOUT_ON_PASSWORD_CHANGE", True):
-            self._logout_on_password_change(request=request)
-        return response.Response(
+        resp = response.Response(
             {"detail": "Password updated successfully"},
             status=status.HTTP_200_OK,
         )
+        if settings.REST_AUTH.get("LOGOUT_ON_PASSWORD_CHANGE", True):
+            return self._logout_on_password_change(self.request, resp)
+        return resp
 
     def update(self, request, *args, **kwargs):
-        user = self.request.user
         serializer = self.serializer_class(
             data=request.data, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
 
-        # Check old password
-        # old_password = serializer.validated_data.get("old_password")
-        # if not user.check_password(old_password):
-        #     return response.Response(
-        #         {"old_password": ["Wrong password."]},
-        #         status=status.HTTP_401_UNAUTHORIZED,
-        #     )
-        # # set_password also hashes the password that the user will get
         password = serializer.validated_data.get("password")
-        # retype_password = serializer.validated_data.get("retype_password")
-        #
-        # if password != retype_password:
-        #     raise exceptions.NotAcceptable(detail="Passwords do not match")
         try:
-            self._change_password(
-                request=request,
-                user=user,
+            return self._change_password(
                 password=password,
             )
 
