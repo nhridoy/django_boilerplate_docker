@@ -1,7 +1,6 @@
 import contextlib
 
 import pyotp
-import requests
 from dj_rest_auth.jwt_auth import (
     set_jwt_access_cookie,
     set_jwt_cookies,
@@ -31,7 +30,7 @@ from user import models, serializers
 from user.throttle import AnonUserRateThrottle
 
 
-def direct_login(request: requests.Request, user, token_data):
+def direct_login(request, user, token_data):
     """
     Directly logs in a user by setting JWT cookies in the response and returning the token data.
 
@@ -301,82 +300,3 @@ class OTPLoginView(views.APIView):
         token["is_active"] = user.is_active
         token["is_superuser"] = user.is_superuser
         return token
-
-
-class OTPCheckView(views.APIView):
-    """
-    Check if OTP is active for user or not
-    """
-
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = serializers.OTPCheckSerializer
-
-    def get(self, request, *args, **kwargs):
-        try:
-            user_otp = generics.get_object_or_404(
-                models.OTPModel, user=self.request.user
-            )
-            serializer = self.serializer_class(user_otp)
-            return response.Response(
-                {
-                    "detail": serializer.data.get("is_active"),
-                }
-            )
-        except Exception as e:
-            raise exceptions.APIException from e
-
-
-class QRCreateView(views.APIView):
-    """
-    Get method for QR Create
-    Post method for QR verify
-    Delete method for Disabling OTP
-    """
-
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = serializers.QRCreateSerializer
-
-    @staticmethod
-    def _clear_user_otp(user_otp):
-        user_otp.key = ""
-        user_otp.is_active = False
-        user_otp.save()
-
-    def get(self, request, *args, **kwargs):
-        generated_key = pyotp.random_base32()
-        current_user = self.request.user
-        qr_key = pyotp.TOTP(generated_key).provisioning_uri(
-            name=current_user.email, issuer_name=settings.PROJECT_NAME
-        )
-        return response.Response(
-            {"qr_key": qr_key, "generated_key": generated_key},
-            status=status.HTTP_200_OK,
-        )
-
-    def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        generated_key = serializer.validated_data.get("generated_key")
-        otp = serializer.validated_data.get("otp")
-        current_user = self.request.user
-        user_otp = models.OTPModel.objects.get(user=current_user)
-
-        totp = pyotp.TOTP(generated_key)
-        if totp.verify(otp):
-            user_otp.key = helper.encrypt(str(generated_key))
-            user_otp.is_active = True
-            user_otp.save()
-            return response.Response(
-                {"detail": "Accepted"},
-                status=status.HTTP_200_OK,
-            )
-        else:
-            print(totp.now())
-            self._clear_user_otp(user_otp)
-            raise exceptions.NotAcceptable(detail="OTP is Wrong or Expired!!!")
-
-    def delete(self, request, *args, **kwargs):
-        current_user = self.request.user
-        user_otp = generics.get_object_or_404(models.OTPModel, user=current_user)
-        self._clear_user_otp(user_otp)
-        return response.Response({"message": "OTP Removed"})

@@ -11,7 +11,7 @@ login_urlpatterns = [
     path("logout/", LogoutView.as_view()),
     path("otp-login/", views.OTPLoginView.as_view()),
     path("otp-check/", views.OTPCheckView.as_view()),
-    path("qr-create/", views.QRCreateView.as_view()),
+    path("qr-create/", views.OTPCreateView.as_view()),
     path("token/refresh/", views.TokenRefreshView.as_view()),
     path("token/verify/", TokenVerifyView.as_view()),
 ]
