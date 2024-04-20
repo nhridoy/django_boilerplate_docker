@@ -4,6 +4,7 @@ from typing import BinaryIO
 
 import jwt
 import pyotp
+from dj_rest_auth.jwt_auth import unset_jwt_cookies
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout, password_validation  # noqa
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
@@ -25,12 +26,6 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 
 from helper import helper
 from user import models, serializers
-from user.auth import (
-    set_jwt_access_cookie,
-    set_jwt_cookies,
-    set_jwt_refresh_cookie,
-    unset_jwt_cookies,
-)
 from user.throttle import AnonUserRateThrottle
 
 
@@ -81,7 +76,7 @@ class ChangePasswordView(generics.UpdateAPIView):
         return resp
 
     def _change_password(self, request, user, password):
-        password_validation.validate_password(password=password, user=user)
+        # password_validation.validate_password(password=password, user=user)
         user.set_password(password)
         user.save()
         if settings.REST_AUTH.get("LOGOUT_ON_PASSWORD_CHANGE", True):
@@ -93,22 +88,24 @@ class ChangePasswordView(generics.UpdateAPIView):
 
     def update(self, request, *args, **kwargs):
         user = self.request.user
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.serializer_class(
+            data=request.data, context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
 
         # Check old password
-        old_password = serializer.validated_data.get("old_password")
-        if not user.check_password(old_password):
-            return response.Response(
-                {"old_password": ["Wrong password."]},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-        # set_password also hashes the password that the user will get
+        # old_password = serializer.validated_data.get("old_password")
+        # if not user.check_password(old_password):
+        #     return response.Response(
+        #         {"old_password": ["Wrong password."]},
+        #         status=status.HTTP_401_UNAUTHORIZED,
+        #     )
+        # # set_password also hashes the password that the user will get
         password = serializer.validated_data.get("password")
-        retype_password = serializer.validated_data.get("retype_password")
-
-        if password != retype_password:
-            raise exceptions.NotAcceptable(detail="Passwords do not match")
+        # retype_password = serializer.validated_data.get("retype_password")
+        #
+        # if password != retype_password:
+        #     raise exceptions.NotAcceptable(detail="Passwords do not match")
         try:
             self._change_password(
                 request=request,

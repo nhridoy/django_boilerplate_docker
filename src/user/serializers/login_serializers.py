@@ -332,18 +332,6 @@ class ResendVerificationEmailSerializer(serializers.Serializer):
         return value
 
 
-class PasswordValidateSerializer(serializers.Serializer):
-    """
-    Serializer for validating password
-    """
-
-    password = serializers.CharField(
-        style={"input_type": "password"},
-        write_only=True,
-        required=True,
-    )
-
-
 class ChangePasswordSerializer(serializers.Serializer):
     """
     Serializer for password change endpoint.
@@ -394,51 +382,3 @@ class OTPCheckSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.OTPModel
         fields = ["is_active"]
-
-
-# Forget/Reset Password Section
-class ResetPasswordSerializer(serializers.Serializer):
-    """
-    Reset Password Request Serializer
-    """
-
-    username = serializers.CharField(required=True)
-
-    def validate_username(self, value):
-        try:
-            self.user = models.User.objects.get(Q(email=value) | Q(username=value))
-        except models.User.DoesNotExist as e:
-            raise validators.ValidationError(
-                detail="Wrong Username/Email/Phone Number"
-            ) from e
-        return value
-
-
-class ResetPasswordCheckSerializer(serializers.Serializer):
-    """
-    Serializer for reset-password-check api view
-    """
-
-    token = serializers.CharField(required=True)
-
-    class Meta:
-        fields = "__all__"
-
-
-class ResetPasswordConfirmSerializer(serializers.Serializer):
-    """
-    Reset Password Confirm Serializer
-    """
-
-    token = serializers.CharField(required=True)
-    password = serializers.CharField(
-        style={"input_type": "password"},
-        # write_only=True,
-        required=True,
-        validators=[validate_password],
-    )
-    retype_password = serializers.CharField(
-        style={"input_type": "password"},
-        # write_only=True,
-        required=True,
-    )
