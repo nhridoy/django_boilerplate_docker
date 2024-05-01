@@ -42,10 +42,8 @@ class PasswordValidateView(views.APIView):
         serializer = self.serializer_class(data=self.request.data)
         serializer.is_valid(raise_exception=True)
 
-        if authenticate(
-            request=request,
-            username=current_user.email,
-            password=serializer.validated_data.get("password"),
+        if current_user.check_password(
+            serializer.validated_data.get("password"),
         ):
             return response.Response(
                 {"message": "Password Accepted"}, status=status.HTTP_200_OK

@@ -127,13 +127,15 @@ class NewUserView(viewsets.ModelViewSet):
         """
         create method for creating
         """
+        # Need the origin to generate email verification link
         try:
             origin = self.request.headers["origin"]
         except Exception as e:
-            raise exceptions.PermissionDenied() from e
+            raise exceptions.PermissionDenied(
+                detail="Origin not found on request header"
+            ) from e
 
-        serializer_class = self.get_serializer_class()
-        serializer = serializer_class(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         if settings.EMAIL_VERIFICATION_REQUIRED:
@@ -145,10 +147,13 @@ class NewUserView(viewsets.ModelViewSet):
         """
         resend_mail method for resending verification email
         """
+        # Need the origin to generate email verification link
         try:
             origin = self.request.headers["origin"]
         except Exception as e:
-            raise exceptions.PermissionDenied() from e
+            raise exceptions.PermissionDenied(
+                detail="Origin not found on request header"
+            ) from e
 
         serializer_class = self.get_serializer_class()
         ser = serializer_class(data=self.request.data)
