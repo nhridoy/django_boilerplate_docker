@@ -39,7 +39,7 @@ class OTPCheckView(views.APIView):
             raise exceptions.APIException from e
 
 
-class OTPCreateView(views.APIView):
+class OTPCreateView(generics.GenericAPIView):
     """
     OTPCreateView class for handling QR code creation, verification, and OTP disabling.
 
