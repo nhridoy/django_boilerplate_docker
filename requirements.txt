@@ -15,7 +15,7 @@ django-cleanup==8.1.0
 django-cors-headers==4.3.1
 django-filter==24.2
 django-phonenumber-field==7.3.0
-djangorestframework==3.15.1
+djangorestframework==3.15.2
 djangorestframework-simplejwt==5.3.1
 drf-spectacular==0.27.2
 idna==3.7
