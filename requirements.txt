@@ -29,7 +29,7 @@ mypy-extensions==1.0.0
 oauthlib==3.2.2
 packaging==24.0
 pathspec==0.12.1
-phonenumbers==8.13.34
+phonenumbers==8.13.35
 pillow==10.3.0
 platformdirs==4.2.0
 pycparser==2.22
