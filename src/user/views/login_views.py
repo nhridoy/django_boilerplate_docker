@@ -11,10 +11,10 @@ from django.conf import settings
 from django.contrib.auth import authenticate, login, logout, password_validation  # noqa
 from django.core.exceptions import ObjectDoesNotExist
 from jwt import DecodeError, ExpiredSignatureError
-from rest_framework import (  # noqa
+from rest_framework import (
     exceptions,
     generics,
-    permissions,
+    permissions,  # noqa
     response,
     status,
     views,
