@@ -1,8 +1,8 @@
 from django.contrib.auth import authenticate, login, logout, password_validation  # noqa
-from rest_framework import (  # noqa
+from rest_framework import (
     exceptions,
     generics,
-    permissions,
+    permissions,  # noqa
     response,
     status,
     views,
